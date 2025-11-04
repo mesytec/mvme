@@ -816,6 +816,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
     , spin_jsonRPCListenPort(new QSpinBox)
     , spin_eventServerListenPort(new QSpinBox)
     , cb_ignoreStartupErrors(new QCheckBox("Ignore VME Init Startup Errors"))
+    , cb_sendRawFormat(new QCheckBox("Send Raw Format (no [sequence number, buffer size] prefix)"))
     , m_bb(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this))
     , m_settings(settings)
 {
@@ -952,6 +953,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
         ));
         auto l = new QFormLayout(gb_streamServer);
         l->addRow(label);
+        l->addRow(cb_sendRawFormat);
         l->addRow(QSL("Listen URIs"), tw_streamServerListenUris);
         l->addRow(pb_streamServerRestoreDefaults);
     }
@@ -998,6 +1000,7 @@ void WorkspaceSettingsDialog::populate()
     spin_eventServerListenPort->setValue(m_settings->value(QSL("EventServer/ListenPort")).toInt());
 
     gb_streamServer->setChecked(m_settings->value(QSL("StreamServer/Enabled"), false).toBool());
+    cb_sendRawFormat->setChecked(m_settings->value(QSL("StreamServer/SendRawFormat"), false).toBool());
 
     auto uris = m_settings->value(QSL("StreamServer/ListenUris")).toStringList();
 
@@ -1039,6 +1042,7 @@ void WorkspaceSettingsDialog::accept()
     m_settings->setValue(QSL("EventServer/ListenPort"), spin_eventServerListenPort->value());
 
     m_settings->setValue(QSL("StreamServer/Enabled"), gb_streamServer->isChecked());
+    m_settings->setValue(QSL("StreamServer/SendRawFormat"), cb_sendRawFormat->isChecked());
 
     QStringList uris;
     for (int row = 0; row < tw_streamServerListenUris->rowCount(); ++row)

@@ -18,8 +18,8 @@ namespace mesytec::mvme
 // queue are sent. Each buffer is prefixed by a 32-bit buffer number and a
 // 32-bit word specifying the number of words in the buffer.
 // format: bufferNumber: u32, bufferSize: u32, buffer: u32[]
-// Newly connected clients will receive the next complete buffer. There is no
-// need to handle partial buffers on clients.
+//
+// Newly connected clients will receive the next complete buffer.
 
 class MvmeStreamServer: public IStreamBufferConsumer
 {

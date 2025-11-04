@@ -4,6 +4,7 @@
 #include <mesytec-mvlc/util/logging.h>
 #include <mesytec-mvlc/stream_server_interface.h>
 #include <mesytec-mvlc/stream_server_asio.h>
+#include <boost/endian/conversion.hpp>
 
 #include "mvme_workspace.h"
 #include "util/expand_env_vars.h"
@@ -15,18 +16,20 @@ namespace mesytec::mvme
 struct MvmeStreamServer::Private
 {
     bool enabled_ = false;
+    bool sendRawFormat_ = false;
     std::vector<std::string> listenUris_;
     std::shared_ptr<spdlog::logger> logger_;
     StreamConsumerBase::Logger mvmeLogger_;
     std::unique_ptr<mvlc::IStreamServer> server_;
     std::mutex mutex_; // protects everything! :)
     size_t startupResult_ = false;
+    std::vector<u32> localBuffer_;
 };
 
 const std::vector<std::string> MvmeStreamServer::DefaultListenUris = {
     "tcp4://*:42333",
 #ifndef WIN32
-    "ipc://${XDG_RUNTIME_DIR}/mvme_stream_server.socket",
+    "ipc://${XDG_RUNTIME_DIR}/mvme_stream_server.sock",
 #endif
 };
 
@@ -47,7 +50,21 @@ void MvmeStreamServer::startup()
 
     std::unique_lock<std::mutex> lock(d->mutex_);
     if (d->enabled_ && !d->listenUris_.empty())
-        d->startupResult_ = d->server_->listen(d->listenUris_);
+    {
+        d->startupResult_ = 0;
+        for (const auto &uri: d->listenUris_)
+        {
+            if (!d->server_->listen(uri))
+            {
+                d->logger_->error("MvmeStreamServer: Failed to listen on URI: {}", uri);
+                ++d->startupResult_;
+            }
+            else
+            {
+                d->logger_->info("MvmeStreamServer: Listening on URI: {}", uri);
+            }
+        }
+    }
 }
 
 void MvmeStreamServer::shutdown()
@@ -72,29 +89,27 @@ void MvmeStreamServer::endRun(const DAQStats &stats, const std::exception *e)
 }
 
 void MvmeStreamServer::processBuffer(s32 bufferType, u32 bufferNumber, const u32 *buffer,
-                                        size_t bufferSize)
+                                     size_t bufferSize)
 {
     std::unique_lock<std::mutex> lock(d->mutex_);
     Q_UNUSED(bufferType);
     assert(bufferSize <= std::numeric_limits<u32>::max());
 
-    u32 bufferSizeU32 = static_cast<u32>(bufferSize);
+    size_t wordsNeeded = d->sendRawFormat_ ? bufferSize : (2 + bufferSize);
+    d->localBuffer_.resize(wordsNeeded);
 
-    std::array<mvlc::IStreamServer::IOV, 3> iov{};
+    if (!d->sendRawFormat_)
+    {
+        d->localBuffer_[0] = boost::endian::native_to_little(bufferNumber);
+        d->localBuffer_[1] = boost::endian::native_to_little(static_cast<u32>(bufferSize));
+    }
 
-    // format is: bufferNumber: u32, bufferSize: u32, buffer: u32[]
-    iov[0].buf = &bufferNumber;
-    iov[0].len = sizeof(bufferNumber);
+    std::transform(buffer, buffer + bufferSize,
+                   d->localBuffer_.data() + (d->sendRawFormat_ ? 0 : 2),
+                   [](u32 val) { return boost::endian::native_to_little(val); });
 
-    iov[1].buf = &bufferSizeU32;
-    iov[1].len = sizeof(bufferSizeU32);
-
-    iov[2].buf = buffer;
-    iov[2].len = bufferSize * sizeof(u32);
-
-    // TODO: do byteswapping here! This is the last place where we know the data is u32, not u8.
-
-    d->server_->sendToAllClients(iov.data(), iov.size());
+    d->server_->sendToAllClients(reinterpret_cast<const u8 *>(d->localBuffer_.data()),
+                                 d->localBuffer_.size() * sizeof(u32));
 }
 
 void MvmeStreamServer::setLogger(StreamConsumerBase::Logger logger)
@@ -112,6 +127,7 @@ void MvmeStreamServer::reloadConfiguration()
     auto settings = make_workspace_settings();
 
     d->enabled_ = settings.value(QSL("StreamServer/Enabled")).toBool();
+    d->sendRawFormat_ = settings.value(QSL("StreamServer/SendRawFormat")).toBool();
 
     d->logger_->trace("MvmeStreamServer::reloadConfiguration(): StreamServer/Enabled={}",
                  d->enabled_);
@@ -136,11 +152,6 @@ void MvmeStreamServer::reloadConfiguration()
     if (!d->listenUris_.empty() && d->enabled_)
     {
         startup();
-
-        if (d->startupResult_ != d->listenUris_.size())
-            logMessage(QSL("StreamServer failed to listen on at least one URI! See the console log for details."));
-        else
-            logMessage(fmt::format("StreamServer listening on: {}", fmt::join(d->listenUris_, ", ")).c_str());
     }
 }
 
