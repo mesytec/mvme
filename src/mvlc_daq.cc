@@ -177,7 +177,7 @@ std::error_code setup_readout_stacks(MVLCObject &mvlc, const VMEConfig &vmeConfi
 
         if (stackBuilder.empty())
         {
-            spdlog::warn("Empty readout stack for event %1, skipping to next event config",
+            spdlog::warn("Empty readout stack for event {}, skipping to next event config",
                 event->objectName().toLocal8Bit().data());
             logger(QSL("Empty readout stack for event %1, skipping to next event config")
                 .arg(event->objectName().toLocal8Bit().data()));
