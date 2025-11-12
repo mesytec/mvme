@@ -72,6 +72,7 @@ void MvmeStreamServer::shutdown()
     std::unique_lock<std::mutex> lock(d->mutex_);
     d->server_->stop();
     d->startupResult_ = 0;
+    d->logger_->info("MvmeStreamServer: stopped");
 }
 
 void MvmeStreamServer::beginRun(const RunInfo &runInfo, const VMEConfig *vmeConfig,

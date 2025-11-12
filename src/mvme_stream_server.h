@@ -42,8 +42,8 @@ class MvmeStreamServer: public IStreamBufferConsumer
     void processBuffer(s32 bufferType, u32 bufferNumber, const u32 *buffer,
                        size_t bufferSize) override;
 
-    void setLogger(Logger logger);
-    Logger &getLogger();
+    void setLogger(Logger logger) override;
+    Logger &getLogger() override;
 
     void reloadConfiguration() override;
 
