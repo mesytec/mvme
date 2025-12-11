@@ -48,7 +48,7 @@ struct Write
     static const unsigned Opt_HexValue = 1u << 0;;
 
     // Opt_BinValue indicates that the register value should be printed in
-    // binary (0bxyz literatl) instead of decimal.
+    // binary (0bxyz literal) instead of decimal.
     static const unsigned Opt_BinValue = 1u << 1;
 
     // Relative register address. Only the low two bytes are stored.
