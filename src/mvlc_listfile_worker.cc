@@ -132,16 +132,15 @@ void MVLCListfileWorker::setListfile(ListfileReplayHandle *handle)
 {
     try
     {
-    QIODevice *input = handle->listfile.get();
+        QIODevice *input = handle->listfile.get();
 
-    if (qobject_cast<QFile *>(input))
-        throw std::runtime_error("MVLC replays from flat file are not supported yet.");
+        if (qobject_cast<QFile *>(input))
+            throw std::runtime_error("MVLC replays from flat file are not supported yet.");
 
+        d->replayHandle = handle;
 
-    d->replayHandle = handle;
-
-    if (auto inZipFile = qobject_cast<QuaZipFile *>(input))
-        d->stats.access()->listfileFilename = inZipFile->getZipName();
+        if (auto inZipFile = qobject_cast<QuaZipFile *>(input))
+            d->stats.access()->listfileFilename = inZipFile->getZipName();
     }
     catch (const std::exception &e)
     {
