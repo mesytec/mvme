@@ -207,7 +207,7 @@ BasicParts generate(const trigger_io::TriggerResource &unit, int /*index*/)
     BasicParts ret;
 
     ret += write_unit_reg(0x80u, static_cast<u16>(unit.type),
-                          "type: 0=IRQ, 1=SoftTrigger, 2=SlaveTrigger");
+                          "type: 0=IRQ, 1=SoftTrigger, 2=SyncTrigger");
 
     ret += write_unit_reg(0, static_cast<u16>(unit.irqUtil.irqIndex),
                           "irq_index (zero-based: 0: IRQ1, .., 6: IRQ7)");
