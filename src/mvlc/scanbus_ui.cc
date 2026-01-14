@@ -131,7 +131,7 @@ struct MvlcScanbusWidget::Private
         }
         catch (const std::exception &e)
         {
-            QMessageBox::critical(q, "VME Bus Scan Error",
+            QMessageBox::critical(nullptr, "VME Bus Scan Error",
                                   QString("An error occurred during VME bus scan:\n%1").arg(e.what()));
         }
     }
