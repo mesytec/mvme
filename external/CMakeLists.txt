@@ -28,11 +28,7 @@ target_include_directories(exprtk INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/exprtk)
 add_library(cpp11-on-multicore INTERFACE)
 target_include_directories(cpp11-on-multicore INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/cpp11-on-multicore)
 
-# libmesytec-mvlc
 add_subdirectory(mesytec-mvlc)
-
-# install pybind11 to include/
-INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pybind11 DESTINATION include)
 
 # googletest
 if (MVME_BUILD_TESTS)
@@ -77,8 +73,7 @@ if(NOT nng AND NOT TARGET nng)
 endif()
 
 # range-v3
-find_package(range-v3 QUIET)
-if (NOT range-v3)
+if (NOT TARGET range-v3::meta)
     set(RANGES_BUILD_CALENDAR_EXAMPLE OFF)
     set(RANGES_DEBUG_INFO OFF)
     add_subdirectory(range-v3-0.12.0)
