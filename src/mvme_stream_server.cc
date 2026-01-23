@@ -38,7 +38,7 @@ MvmeStreamServer::MvmeStreamServer()
     , d(std::make_unique<Private>())
 {
     d->logger_ = mvlc::get_logger("mvme_stream_server");
-    d->server_ = std::make_unique<mvlc::StreamServerAsio>();
+    d->server_ = std::make_unique<mvlc::StreamServer>();
 }
 
 MvmeStreamServer::~MvmeStreamServer()
@@ -105,6 +105,9 @@ void MvmeStreamServer::processBuffer(s32 bufferType, u32 bufferNumber, const u32
         d->localBuffer_[1] = boost::endian::native_to_little(static_cast<u32>(bufferSize));
     }
 
+    // TODO: get rid of this copy. sendToAllClients() is blocking so we do not
+    // need to keep a copy around. Use the io gather overload of
+    // sendToAllClients() instead. That's why it was added.
     std::transform(buffer, buffer + bufferSize,
                    d->localBuffer_.data() + (d->sendRawFormat_ ? 0 : 2),
                    [](u32 val) { return boost::endian::native_to_little(val); });
