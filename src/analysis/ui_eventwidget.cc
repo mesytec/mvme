@@ -41,6 +41,7 @@
 #include <qaction.h>
 #include <qgv.h>
 
+#include <mesytec-mvlc/util/algo.h>
 #include <mesytec-mvlc/util/counters.h>
 
 #include "analysis/a2_adapter.h"
@@ -126,7 +127,7 @@ AnalysisObjectPtr get_analysis_object(QTreeWidgetItem *node, s32 dataRole = Qt::
             {
                 auto qo = get_qobject(node, dataRole);
                 if (qo == nullptr)
-                    qDebug() << __PRETTY_FUNCTION__ << "null object for node" << node << ", type=" << node->type() << ", text=" << node->text(0);
+                    qWarning() << __PRETTY_FUNCTION__ << "null object for node" << node << ", type=" << node->type() << ", text=" << node->text(0);
                 if (auto ao = qobject_cast<AnalysisObject *>(qo))
                     return ao->shared_from_this();
             }
@@ -227,7 +228,6 @@ Histo1DWidgetInfo getHisto1DWidgetInfoFromNode(QTreeWidgetItem *node)
 
 ObjectTree::~ObjectTree()
 {
-    //qDebug() << __PRETTY_FUNCTION__ << this;
 }
 
 AnalysisServiceProvider *ObjectTree::getServiceProvider() const
@@ -299,7 +299,6 @@ Qt::DropActions ObjectTree::supportedDropActions() const
 
 DataSourceTree::~DataSourceTree()
 {
-    //qDebug() << __PRETTY_FUNCTION__ << this;
 }
 
 QStringList DataSourceTree::mimeTypes() const
@@ -469,7 +468,6 @@ bool DataSourceTree::dropMimeData(QTreeWidgetItem *parentItem,
 
 OperatorTree::~OperatorTree()
 {
-    //qDebug() << __PRETTY_FUNCTION__ << this;
 }
 
 QStringList OperatorTree::mimeTypes() const
@@ -663,7 +661,6 @@ bool OperatorTree::dropMimeData(QTreeWidgetItem *parentItem,
 
 SinkTree::~SinkTree()
 {
-    //qDebug() << __PRETTY_FUNCTION__ << this;
 }
 
 QStringList SinkTree::mimeTypes() const
@@ -673,7 +670,6 @@ QStringList SinkTree::mimeTypes() const
 
 QMimeData *SinkTree::mimeData(const QList<QTreeWidgetItem *> nodes) const
 {
-    //qDebug() << __PRETTY_FUNCTION__ << this;
 
     QVector<AnalysisObjectRef> objectRefs;
 
@@ -1108,7 +1104,11 @@ void add_directory_nodes(ObjectTree *tree, const DirectoryPtr &dir,
                          QHash<DirectoryPtr, TreeNode *> &nodes,
                          Analysis *analysis)
 {
-    if (nodes.contains(dir)) return;
+    if (nodes.contains(dir))
+    {
+        qWarning() << "node for directory " << dir->getId() << dir->objectName() << " already exists";
+        return;
+    }
 
     auto node = make_directory_node(dir);
 
@@ -1979,6 +1979,20 @@ void EventWidgetPrivate::pasteFromClipboard(QTreeWidget *destTree)
 
 void EventWidgetPrivate::createView()
 {
+    // View creation steps
+    // - Create empty trees for each user level (horizontally split). Do this
+    //   for both the top operator and bottom sink trees in each level.
+    // - Create directories for all levels. We need them before placing objects.
+    // - Create sink and operator nodes and place them under the correct directories or the tree root.
+    //
+    // Directory membership takes precendence over user level placement, so
+    // operators/sinks that are contained in a directory will be shown in that
+    // directory even if their user level is different. This was changed for
+    // v1.18 to fix invisible objects that have a level different from their
+    // parent directory. I haven't figured out the exact steps on how to get the
+    // ui to generate this broken file in the first place. It involved directory
+    // creation and a bit of drag & drop.
+
     // check state handler
     auto csh = [this] (ObjectTree *tree, QTreeWidgetItem *node, const QVariant &prev)
     {
@@ -1990,12 +2004,35 @@ void EventWidgetPrivate::createView()
 
     for (s32 userLevel = 0; userLevel <= maxUserLevel; ++userLevel)
     {
-        auto trees = createTrees(userLevel);
-
+        auto trees = createEmptyTrees(userLevel);
         for (auto &tree: trees.getObjectTrees())
             tree->setCheckStateChangeHandler(csh);
-
         m_levelTrees.push_back(trees);
+    }
+
+    m_dirNodes.clear();
+
+    for (s32 userLevel = 0; userLevel <= maxUserLevel; ++userLevel)
+    {
+        m_dirNodes.unite(addDirectoryNodes(userLevel));
+    }
+
+    for (s32 userLevel = 0; userLevel <= maxUserLevel; ++userLevel)
+    {
+        populateTrees(userLevel);
+    }
+
+    // Extra check to ensure we have a node for every object in the analysis
+    // config.
+    for (const auto &obj: analysis->getAllObjects())
+    {
+        if (mesytec::mvlc::util::contains(m_objectMap, obj->weak_from_this()))
+            continue;
+
+        qWarning() << "createView: No node for object:"
+                   << "id:" << obj->getId() << "name:" << obj->objectName()
+                   << "type:" << obj->metaObject()->className();
+        assert(!"Missing node for object");
     }
 }
 
@@ -2092,6 +2129,67 @@ static const s32 minTreeWidth = 200;
 static const s32 minTreeHeight = 150;
 
 } // anon ns
+
+UserLevelTrees EventWidgetPrivate::createEmptyTrees(s32 level)
+{
+    QString opTreeTitle = (level == 0 ? QSL("L0 Parameter Extraction") : QSL("L%1 Processing").arg(level));
+    QString sinkTreeTitle = (level == 0 ? QSL("L0 Raw Data Display") : QSL("L%1 Data Display").arg(level));
+    UserLevelTrees result = make_displaylevel_trees(opTreeTitle, sinkTreeTitle, level);
+    return result;
+}
+
+QHash<DirectoryPtr, TreeNode *> EventWidgetPrivate::addDirectoryNodes(s32 level)
+{
+    if (!(0 <= level && level < m_levelTrees.size()))
+        return {};
+
+    QHash<DirectoryPtr, TreeNode *> result;
+
+    auto opTree = m_levelTrees[level].operatorTree;
+    auto sinkTree = m_levelTrees[level].sinkTree;
+
+    auto analysis = m_serviceProvider->getAnalysis();
+
+    auto opDirs = analysis->getDirectories(level, DisplayLocation::Operator);
+    auto sinkDirs = analysis->getDirectories(level, DisplayLocation::Sink);
+
+    std::sort(std::begin(opDirs), std::end(opDirs), qobj_ptr_natural_compare);
+    std::sort(std::begin(sinkDirs), std::end(sinkDirs), qobj_ptr_natural_compare);
+
+    add_directory_nodes(opTree, opDirs, result, analysis);
+    add_directory_nodes(sinkTree, sinkDirs, result, analysis);
+
+    for (auto it=result.begin(); it!=result.end(); ++it)
+    {
+        auto dir = it.key();
+        auto dirNode = it.value();
+
+        assert(m_objectMap.count(dir) == 0);
+        m_objectMap[dir] = dirNode;
+    }
+
+    return result;
+}
+
+void EventWidgetPrivate::populateTrees(s32 level)
+{
+    if (!(0 <= level && level < m_levelTrees.size()))
+        return;
+
+    if (level == 0)
+    {
+        // Top-left tree containing modules and data sources
+        populateDataSourceTree(qobject_cast<DataSourceTree *>(m_levelTrees[level].operatorTree));
+    }
+    else
+    {
+        // Top trees containing operators
+        populateOperatorTree(level, qobject_cast<OperatorTree *>(m_levelTrees[level].operatorTree));
+    }
+
+    // Bottom row containing histograms and other sinks
+    populateSinkTree(level, m_levelTrees[level].sinkTree);
+}
 
 void EventWidgetPrivate::populateDataSourceTree(
     DataSourceTree *tree)
@@ -2274,46 +2372,23 @@ void EventWidgetPrivate::populateDataSourceTree(
         tree->unassignedDataSourcesRoot->addChild(node);
 }
 
-UserLevelTrees EventWidgetPrivate::createTrees(s32 level)
+void EventWidgetPrivate::populateOperatorTree(s32 level, ObjectTree *tree)
 {
-    QString opTreeTitle = (level == 0 ? QSL("L0 Parameter Extraction") : QSL("L%1 Processing").arg(level));
-    QString sinkTreeTitle = (level == 0 ? QSL("L0 Raw Data Display") : QSL("L%1 Data Display").arg(level));
-
-    UserLevelTrees result = make_displaylevel_trees(opTreeTitle, sinkTreeTitle, level);
-
-    // Custom populate function for the top-left data source tree
-    if (level == 0)
-        populateDataSourceTree(qobject_cast<DataSourceTree *>(result.operatorTree));
-
     auto analysis = m_serviceProvider->getAnalysis();
-
-    // create directory entries for both trees
-    auto opDirs = analysis->getDirectories(level, DisplayLocation::Operator);
-    auto sinkDirs = analysis->getDirectories(level, DisplayLocation::Sink);
-
-    std::sort(std::begin(opDirs), std::end(opDirs), qobj_ptr_natural_compare);
-    std::sort(std::begin(sinkDirs), std::end(sinkDirs), qobj_ptr_natural_compare);
-
-    QHash<DirectoryPtr, TreeNode *> dirNodes;
-
-    // Populate the top OperatorTree
-
-    add_directory_nodes(result.operatorTree, opDirs, dirNodes, analysis);
-
     auto operators = analysis->getOperators(level);
     std::sort(std::begin(operators), std::end(operators), qobj_ptr_natural_compare);
 
     for (auto op: operators)
     {
         if (qobject_cast<SinkInterface *>(op.get()))
+
             continue;
 
-        //if (qobject_cast<ConditionInterface *>(op.get()))
-        //    continue;
-
-        std::unique_ptr<TreeNode> opNode(make_operator_node(op.get()));
+        if (m_placedObjects.contains(op))
+            continue;
 
         assert(m_objectMap.count(op) == 0);
+        std::unique_ptr<TreeNode> opNode(make_operator_node(op.get()));
         m_objectMap[op] = opNode.get();
 
         if (level > 0)
@@ -2323,118 +2398,122 @@ UserLevelTrees EventWidgetPrivate::createTrees(s32 level)
 
         if (auto dir = analysis->getParentDirectory(op))
         {
-            if (auto dirNode = dirNodes.value(dir))
+            if (auto dirNode = m_objectMap[dir])
             {
                 dirNode->addChild(opNode.release());
+                m_placedObjects.insert(op);
             }
         }
         else
         {
-            result.operatorTree->addTopLevelItem(opNode.release());
+            tree->addTopLevelItem(opNode.release());
+            m_placedObjects.insert(op);
         }
     }
+}
 
-    // Populate the SinkTree
+void EventWidgetPrivate::populateSinkTree(s32 level, ObjectTree *tree)
+{
+    auto analysis = m_serviceProvider->getAnalysis();
+    auto operators = analysis->getOperators(level);
+    std::sort(std::begin(operators), std::end(operators), qobj_ptr_natural_compare);
 
-    add_directory_nodes(result.sinkTree, sinkDirs, dirNodes, analysis);
-
+    for (const auto &op: operators)
     {
-        for (const auto &op: operators)
+        std::unique_ptr<TreeNode> theNode;
+
+        if (auto histoSink = qobject_cast<Histo1DSink *>(op.get()))
         {
-            std::unique_ptr<TreeNode> theNode;
-
-            if (auto histoSink = qobject_cast<Histo1DSink *>(op.get()))
-            {
-                theNode.reset(make_histo1d_node(histoSink));
-            }
-            else if (auto histoSink = qobject_cast<Histo2DSink *>(op.get()))
-            {
-                theNode.reset(make_histo2d_node(histoSink));
-            }
-            else if (auto sink = qobject_cast<WaveformSink *>(op.get()))
-            {
-                theNode.reset(make_sink_node(sink));
-            }
-            else if (auto sink = qobject_cast<SinkInterface *>(op.get()))
-            {
-                theNode.reset(make_sink_node(sink));
-            }
-
-            if (theNode)
-            {
-                assert(m_objectMap.count(op) == 0);
-                m_objectMap[op] = theNode.get();
-
-                theNode->setFlags(theNode->flags() | Qt::ItemIsDragEnabled);
-
-                if (auto dir = analysis->getParentDirectory(op))
-                {
-                    if (auto dirNode = dirNodes.value(dir))
-                    {
-                        dirNode->addChild(theNode.release());
-                    }
-                }
-                else
-                {
-                    result.sinkTree->addTopLevelItem(theNode.release());
-                }
-            }
+            theNode.reset(make_histo1d_node(histoSink));
+        }
+        else if (auto histoSink = qobject_cast<Histo2DSink *>(op.get()))
+        {
+            theNode.reset(make_histo2d_node(histoSink));
+        }
+        else if (auto sink = qobject_cast<WaveformSink *>(op.get()))
+        {
+            theNode.reset(make_sink_node(sink));
+        }
+        else if (auto sink = qobject_cast<SinkInterface *>(op.get()))
+        {
+            theNode.reset(make_sink_node(sink));
         }
 
-        // generic sink objects. FIXME: refactor all object handling code. keep
-        // a single object vector in the analysis.
-        for (const auto &obj: analysis->getAllObjects())
+        if (theNode)
         {
-            if (auto view = std::dynamic_pointer_cast<PlotGridView>(obj);
-                view && obj->getUserLevel() == level)
+            assert(m_objectMap.count(op) == 0);
+            m_objectMap[op] = theNode.get();
+
+            theNode->setFlags(theNode->flags() | Qt::ItemIsDragEnabled);
+
+            if (auto dir = analysis->getParentDirectory(op))
             {
-                std::unique_ptr<TreeNode> node(
-                    make_node(view.get(), NodeType_PlotGridView, DataRole_AnalysisObject));
-
-                node->setData(0, Qt::DisplayRole, QSL("<b>PlotGrid</b> %1").arg(view->objectName()));
-                node->setData(0, Qt::EditRole, view->objectName());
-                node->setFlags(node->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
-                node->setIcon(0, QIcon(":/grid.png"));
-
-                if (auto dir = analysis->getParentDirectory(view))
+                if (auto dirNode = m_dirNodes.value(dir))
                 {
-                    if (auto dirNode = dirNodes.value(dir))
-                        dirNode->addChild(node.release());
+                    dirNode->addChild(theNode.release());
                 }
                 else
-                    result.sinkTree->addTopLevelItem(node.release());
+                {
+                    qWarning() << "populateSinkTree: no dirNode for dir"
+                             << dir->getId() << dir->objectName();
+                }
             }
-
-            if (auto histoOps = std::dynamic_pointer_cast<HistogramOperation>(obj);
-                histoOps && obj->getUserLevel() == level)
+            else
             {
-                std::unique_ptr<TreeNode> node(
-                    make_node(histoOps.get(), NodeType_HistogramOperation, DataRole_AnalysisObject));
-
-                node->setData(0, Qt::DisplayRole, QSL("<b>HistoOp</b> %1").arg(histoOps->objectName()));
-                node->setData(0, Qt::EditRole, histoOps->objectName());
-                node->setFlags(node->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
-                node->setIcon(0, QIcon(":/histo_ops.png"));
-
-                if (auto dir = analysis->getParentDirectory(histoOps))
-                {
-                    if (auto dirNode = dirNodes.value(dir))
-                        dirNode->addChild(node.release());
-                }
-                else
-                    result.sinkTree->addTopLevelItem(node.release());
+                tree->addTopLevelItem(theNode.release());
             }
         }
     }
 
-    for (const auto &dir: dirNodes.keys())
+    for (const auto &obj: analysis->getAllObjects())
     {
-        assert(m_objectMap.count(dir) == 0);
-        assert(dirNodes.value(dir));
-        m_objectMap[dir] = dirNodes.value(dir);
-    }
+        std::unique_ptr<TreeNode> node;
 
-    return result;
+        if (auto view = std::dynamic_pointer_cast<PlotGridView>(obj);
+            view && obj->getUserLevel() == level)
+        {
+            node.reset(make_node(view.get(), NodeType_PlotGridView, DataRole_AnalysisObject));
+
+            node->setData(0, Qt::DisplayRole, QSL("<b>PlotGrid</b> %1").arg(view->objectName()));
+            node->setData(0, Qt::EditRole, view->objectName());
+            node->setFlags(node->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
+            node->setIcon(0, QIcon(":/grid.png"));
+
+            if (auto dir = analysis->getParentDirectory(view))
+            {
+                if (auto dirNode = m_dirNodes.value(dir))
+                    dirNode->addChild(node.release());
+            }
+            else
+                tree->addTopLevelItem(node.release());
+
+        }
+
+        if (auto histoOps = std::dynamic_pointer_cast<HistogramOperation>(obj);
+            histoOps && obj->getUserLevel() == level)
+        {
+            node.reset(make_node(histoOps.get(), NodeType_HistogramOperation, DataRole_AnalysisObject));
+
+            node->setData(0, Qt::DisplayRole, QSL("<b>HistoOp</b> %1").arg(histoOps->objectName()));
+            node->setData(0, Qt::EditRole, histoOps->objectName());
+            node->setFlags(node->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
+            node->setIcon(0, QIcon(":/histo_ops.png"));
+
+            if (auto dir = analysis->getParentDirectory(histoOps))
+            {
+                if (auto dirNode = m_dirNodes.value(dir))
+                    dirNode->addChild(node.release());
+            }
+            else
+                tree->addTopLevelItem(node.release());
+        }
+
+        if (node)
+        {
+            assert(m_objectMap.count(obj) == 0);
+            m_objectMap[obj] = node.get();
+        }
+    }
 }
 
 void EventWidgetPrivate::appendTreesToView(UserLevelTrees trees)
@@ -2623,7 +2702,8 @@ void EventWidgetPrivate::repopulate()
 
     for (auto trees: m_levelTrees)
     {
-        // This populates the operator and display splitters
+        // This populates the operator and display splitters with the previously
+        // created trees.
         appendTreesToView(trees);
     }
 
@@ -2631,10 +2711,7 @@ void EventWidgetPrivate::repopulate()
 
     for (s32 i = 0; i < levelsToAdd; ++i)
     {
-        s32 levelIndex = m_levelTrees.size();
-        auto trees = createTrees(levelIndex);
-        m_levelTrees.push_back(trees);
-        appendTreesToView(trees);
+        addUserLevel();
     }
 
     if (splitterSizes.size() == m_operatorFrameSplitter->count())
@@ -2667,7 +2744,7 @@ void EventWidgetPrivate::repopulate()
 void EventWidgetPrivate::addUserLevel()
 {
     s32 levelIndex = m_levelTrees.size();
-    auto trees = createTrees(levelIndex);
+    auto trees = createEmptyTrees(levelIndex);
     m_levelTrees.push_back(trees);
     appendTreesToView(trees);
     m_manualUserLevel = levelIndex + 1;
@@ -5903,7 +5980,6 @@ QTreeWidgetItem *EventWidgetPrivate::findNode(const void *rawPtr)
 void EventWidgetPrivate::copyToClipboard(const AnalysisObjectVector &objects)
 {
     QVector<AnalysisObjectRef> objectRefs;
-    //qDebug() << __PRETTY_FUNCTION__ << objectRefs;
     std::for_each(objects.begin(), objects.end(),
                   [&objectRefs](const AnalysisObjectPtr &obj)
                   {
