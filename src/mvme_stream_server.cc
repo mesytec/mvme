@@ -15,6 +15,8 @@ namespace mesytec::mvme
 
 struct MvmeStreamServer::Private
 {
+    // Holds the StreamServer/* settings. Used to detect config changes.
+    std::map<QString, QVariant> serverSettings;
     bool enabled_ = false;
     bool sendRawFormat_ = false;
     std::vector<std::string> listenUris_;
@@ -128,10 +130,19 @@ StreamConsumerBase::Logger &MvmeStreamServer::getLogger()
 
 void MvmeStreamServer::reloadConfiguration()
 {
-    auto settings = make_workspace_settings();
+    auto prevServerSettings = d->serverSettings;
+    d->serverSettings.clear();
 
-    d->enabled_ = settings.value(QSL("StreamServer/Enabled")).toBool();
-    d->sendRawFormat_ = settings.value(QSL("StreamServer/SendRawFormat")).toBool();
+    auto settings = make_workspace_settings();
+    settings.beginGroup("StreamServer");
+
+    for (const auto &key: settings.allKeys())
+    {
+        d->serverSettings[key] = settings.value(key);
+    }
+
+    d->enabled_ = settings.value(QSL("Enabled")).toBool();
+    d->sendRawFormat_ = settings.value(QSL("SendRawFormat")).toBool();
 
     d->logger_->trace("MvmeStreamServer::reloadConfiguration(): StreamServer/Enabled={}",
                  d->enabled_);
@@ -143,9 +154,15 @@ void MvmeStreamServer::reloadConfiguration()
         return;
     }
 
+    if (d->serverSettings == prevServerSettings)
+    {
+        d->logger_->trace("MvmeStreamServer::reloadConfiguration(): no relevant config changes");
+        return;
+    }
+
     d->listenUris_.clear();
 
-    for (const auto &qtUri: settings.value(QSL("StreamServer/ListenUris")).toStringList())
+    for (const auto &qtUri: settings.value(QSL("ListenUris")).toStringList())
     {
         auto expanded = util::expand_env_vars(qtUri.toStdString());
         d->listenUris_.emplace_back(expanded);
