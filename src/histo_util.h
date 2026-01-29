@@ -228,7 +228,7 @@ class AxisBinning
     {
         double bin = getBinUnchecked(x, rrf);
 
-        if (bin < 0.0)
+        if (bin < 0.0 || std::isnan(bin))
             return Underflow;
 
         if (bin >= getBins(rrf))
