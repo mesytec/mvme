@@ -375,6 +375,10 @@ target_compile_options(libmvme
     PRIVATE -DQT_DISABLE_DEPRECATED_UP_TO=0x060700
     )
 
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    target_compile_options(libmvme PRIVATE -DQT_NO_DEBUG_OUTPUT)
+endif()
+
 #target_include_directories(libmvme PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/analysis/a2)
 
 find_package(prometheus-cpp CONFIG)
