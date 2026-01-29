@@ -1158,8 +1158,20 @@ void Histo1DWidget::replot()
 
 void Histo1DWidget::zoom(const QRectF &zoomRect)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "zoomRect =" << zoomRect;
-    m_d->m_zoomer->zoom(zoomRect);
+    // Zooming directly into the given zoom rect means we do not necessarily
+    // align up with bin edges. When doing projections from a 2d widget and
+    // zooming in the counts in the 2d widget and the 1d projection can diverge
+    // slightly because of this.
+    // The fix is to adjust the zoom rect to align to each axis' bin edges.
+    QRectF adjustedRect;
+    if (auto histo = m_d->getCurrentHisto())
+    {
+        ResolutionReductionFactors rrf = {m_d->getRRF(), AxisBinning::NoResolutionReduction};
+        adjustedRect = snap_to_bin_edges(histo->getAxisBinning(Qt::XAxis),
+                                         histo->getAxisBinning(Qt::YAxis), zoomRect, rrf);
+        qDebug() << __PRETTY_FUNCTION__ << "zoomRect =" << zoomRect;
+    }
+    m_d->m_zoomer->zoom(adjustedRect);
 }
 
 void Histo1DWidgetPrivate::displayChanged()
