@@ -647,6 +647,9 @@ Histo1DWidget::Histo1DWidget(const HistoList &histos, QWidget *parent)
             });
 #endif
 
+    // on histo selection queue an immediate replot
+    connect(this, &Histo1DWidget::histogramSelected, this, &Histo1DWidget::replot);
+
     // Final, right-side spacer. The listwidget adds the histo selection spinbox after
     // this.
     tb->addWidget(make_spacer_widget());
