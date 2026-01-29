@@ -369,4 +369,7 @@ Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis, double star
 Histo1DList slice(Histo2D *histo, Qt::Axis axis, double startX, double endX, double startY,
                   double endY, ResolutionReductionFactors rrfs = {});
 
+QRectF snap_to_bin_edges(const AxisBinning &xBinning, const AxisBinning &yBinning,
+                         const QRectF &rect, const ResolutionReductionFactors &rrf);
+
 #endif /* __HISTO_UTIL_H__ */

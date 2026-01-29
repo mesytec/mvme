@@ -459,3 +459,55 @@ Histo1DList slice(Histo2D *histo, Qt::Axis axis,
 
     return result;
 }
+
+QRectF snap_to_bin_edges(const AxisBinning &xBinning, const AxisBinning &yBinning,
+                         const QRectF &rect, const ResolutionReductionFactors &rrf)
+{
+    auto binXLo = xBinning.getBinBounded(rect.left(), rrf.x);
+    auto binXHi = xBinning.getBinBounded(rect.right(), rrf.x);
+    auto binYLo = yBinning.getBinBounded(rect.top(), rrf.y);
+    auto binYHi = yBinning.getBinBounded(rect.bottom(), rrf.y);
+
+    assert(binXLo <= binXHi);
+    assert(binYLo <= binYHi);
+
+    if (binXLo > 0 && binXLo > rect.left())
+        --binXLo;
+
+    if (binXHi < xBinning.getBinCount() - 1 && binXHi < rect.right())
+        ++binXHi;
+
+    if (binYLo > 0 && binYLo < rect.bottom())
+        --binYLo;
+
+    if (binYHi < yBinning.getBinCount() - 1 && binYHi > rect.top())
+        ++binYHi;
+
+    auto left = xBinning.getBinLowEdge(binXLo, rrf.x);
+    auto right = xBinning.getBinLowEdge(binXHi, rrf.x);
+    auto top = yBinning.getBinLowEdge(binYHi, rrf.y);
+    auto bot = yBinning.getBinLowEdge(binYLo, rrf.y);
+
+    // handle empty axis binnings, e.g. there's no y axis binning for h1d widgets
+    if (std::isnan(left))
+        left = rect.left();
+
+    if (std::isnan(right))
+        right = rect.right();
+
+    if (std::isnan(top))
+        top = rect.top();
+
+    if (std::isnan(bot))
+        bot = rect.bottom();
+
+    QRectF result;
+    result.setLeft(left);
+    result.setRight(right);
+    result.setTop(top);
+    result.setBottom(bot);
+
+    qDebug() << "snap_to_bin_edges: input rect" << rect << "snapped rect" << result;
+
+    return result;
+}
