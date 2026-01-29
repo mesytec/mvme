@@ -320,14 +320,14 @@ Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis,
     }
     else if (axis == Qt::YAxis)
     {
-        projBinning  = histos[0]->getAxisBinning(Qt::XAxis);
+        projBinning  = histos[0]->getAxisBinning(Qt::YAxis);
         otherBinning = xBinning;
 
         for (const auto &histo: histos)
         {
-            projBinning.setBins(std::min(projBinning.getBins(), histo->getAxisBinning(Qt::XAxis).getBins()));
-            projBinning.setMin(std::min(projBinning.getMin(), histo->getAxisBinning(Qt::XAxis).getMin()));
-            projBinning.setMax(std::max(projBinning.getMax(), histo->getAxisBinning(Qt::XAxis).getMax()));
+            projBinning.setBins(std::min(projBinning.getBins(), histo->getAxisBinning(Qt::YAxis).getBins()));
+            projBinning.setMin(std::min(projBinning.getMin(), histo->getAxisBinning(Qt::YAxis).getMin()));
+            projBinning.setMax(std::max(projBinning.getMax(), histo->getAxisBinning(Qt::YAxis).getMax()));
         }
     }
 
