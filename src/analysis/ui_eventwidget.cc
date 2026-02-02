@@ -2479,6 +2479,9 @@ void EventWidgetPrivate::populateSinkTree(s32 level, ObjectTree *tree)
             node->setFlags(node->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
             node->setIcon(0, QIcon(":/grid.png"));
 
+            assert(m_objectMap.count(obj) == 0);
+            m_objectMap[obj] = node.get();
+
             if (auto dir = analysis->getParentDirectory(view))
             {
                 if (auto dirNode = m_dirNodes.value(dir))
@@ -2486,7 +2489,6 @@ void EventWidgetPrivate::populateSinkTree(s32 level, ObjectTree *tree)
             }
             else
                 tree->addTopLevelItem(node.release());
-
         }
 
         if (auto histoOps = std::dynamic_pointer_cast<HistogramOperation>(obj);
@@ -2499,6 +2501,9 @@ void EventWidgetPrivate::populateSinkTree(s32 level, ObjectTree *tree)
             node->setFlags(node->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
             node->setIcon(0, QIcon(":/histo_ops.png"));
 
+            assert(m_objectMap.count(obj) == 0);
+            m_objectMap[obj] = node.get();
+
             if (auto dir = analysis->getParentDirectory(histoOps))
             {
                 if (auto dirNode = m_dirNodes.value(dir))
@@ -2506,12 +2511,6 @@ void EventWidgetPrivate::populateSinkTree(s32 level, ObjectTree *tree)
             }
             else
                 tree->addTopLevelItem(node.release());
-        }
-
-        if (node)
-        {
-            assert(m_objectMap.count(obj) == 0);
-            m_objectMap[obj] = node.get();
         }
     }
 }
