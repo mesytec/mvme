@@ -43,6 +43,7 @@ enum CompressionPreset
     Fast_LZ4 = 1,           // LZ4, level 0 (faster than ZIP level 1)
     Fast_ZIP = 2,           // ZIP, level 1 aka "super fast"
     ZmqServer_Ganil = 3,    // Hack to be able to choose ZMQ pub via the compression combo. TODO: redesign the GUI!
+    TcpStreamServer = 4,    // Another hack to add the TCP stream server option aswell.
 };
 
 static void fill_compression_combo(QComboBox *combo, bool isMVLC)
@@ -61,6 +62,10 @@ static void fill_compression_combo(QComboBox *combo, bool isMVLC)
     if (isMVLC)
         combo->addItem(QSL("ZMQ Publisher"), CompressionPreset::ZmqServer_Ganil);
 #endif
+
+    if (isMVLC)
+        combo->addItem(QSL("TCP Stream Server"), CompressionPreset::TcpStreamServer);
+
 }
 
 DAQControlWidget::DAQControlWidget(QWidget *parent)
@@ -185,6 +190,11 @@ DAQControlWidget::DAQControlWidget(QWidget *parent)
             case CompressionPreset::ZmqServer_Ganil:
                 m_listFileOutputInfo.format = ListFileFormat::ZMQ_Ganil;
                 // Requested by GANIL: always enable "listfile writing" when ZMQ output is selected.
+                cb_writeListfile->setChecked(true);
+                break;
+
+                case CompressionPreset::TcpStreamServer:
+                m_listFileOutputInfo.format = ListFileFormat::TcpStreamServer;
                 cb_writeListfile->setChecked(true);
                 break;
 
@@ -590,6 +600,8 @@ void DAQControlWidget::updateWidget()
             comboData = 1;
         else if (outputInfo.format == ListFileFormat::ZMQ_Ganil)
             comboData = CompressionPreset::ZmqServer_Ganil;
+        else if (outputInfo.format == ListFileFormat::TcpStreamServer)
+            comboData = CompressionPreset::TcpStreamServer;
 
         for (int i=0; i<combo_compression->count(); ++i)
         {
