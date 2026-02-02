@@ -374,6 +374,10 @@ target_compile_options(libmvme
     PRIVATE -DQT_DISABLE_DEPRECATED_UP_TO=0x060700
     )
 
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    target_compile_options(libmvme PRIVATE -DQT_NO_DEBUG_OUTPUT)
+endif()
+
 #target_include_directories(libmvme PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/analysis/a2)
 
 find_package(prometheus-cpp CONFIG)
@@ -574,16 +578,6 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(event_server)
-
-# handling of GSI MBS LMD files
-if (NOT WIN32)
-  add_subdirectory(gsi-mbs-api)
-  add_library(gsi-mbs-wrappers STATIC mbs_wrappers.cc)
-  target_link_libraries(gsi-mbs-wrappers PRIVATE mesytec-mvlc PRIVATE gsi-mbs-api)
-
-  add_mvme_exe(lmd2mvme "lmd2mvme.cc")
-  target_link_libraries(lmd2mvme PRIVATE gsi-mbs-wrappers)
-endif()
 
 #add_subdirectory(listfile_reader)
 

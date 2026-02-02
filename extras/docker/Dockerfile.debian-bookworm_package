@@ -10,7 +10,7 @@
 # Note: submodules have to be initialized and updated in order for the build to
 # succeed.
 
-FROM debian:bookworm
+FROM debian:bookworm AS build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash build-essential git cmake ninja-build ca-certificates \
@@ -25,7 +25,9 @@ WORKDIR /build
 
 ENV QT_QPA_PLATFORM=minimal
 
-# Installation is just to try it out, it's not required to run the test cases.
 RUN cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/install \
-          -DMVME_BUILD_TESTS=ON /sources \
-    && ninja && ctest . -LE not_in_docker && ninja install
+          -DMVME_BUILD_TESTS=OFF /sources \
+    && ninja && ctest . -LE not_in_docker --output-on-failure && ninja package
+
+FROM scratch
+COPY --from=build /build/packages ./build-artifacts

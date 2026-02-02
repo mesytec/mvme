@@ -623,11 +623,14 @@ Histo1DWidget::Histo1DWidget(const HistoList &histos, QWidget *parent)
             });
 
     auto actionShowDependencyGraph = tb->addAction(QIcon(":/node-select.png"), "Dependency Graph");
-    connect(actionShowDependencyGraph, &QAction::triggered,
-            this, [this]
+    connect(actionShowDependencyGraph, &QAction::triggered, this,
+            [this]
             {
-                if (auto asp = getServiceProvider())
-                    analysis::graph::show_dependency_graph(asp, getSink());
+                if (auto sink = getSink())
+                {
+                    if (auto asp = getServiceProvider())
+                        analysis::graph::show_dependency_graph(asp, sink);
+                }
             });
 
 #ifndef QT_NO_DEBUG
@@ -643,6 +646,9 @@ Histo1DWidget::Histo1DWidget(const HistoList &histos, QWidget *parent)
                  replot();
             });
 #endif
+
+    // on histo selection queue an immediate replot
+    connect(this, &Histo1DWidget::histogramSelected, this, &Histo1DWidget::replot);
 
     // Final, right-side spacer. The listwidget adds the histo selection spinbox after
     // this.
@@ -1153,6 +1159,24 @@ void Histo1DWidget::replot()
 #endif
 }
 
+void Histo1DWidget::zoom(const QRectF &zoomRect)
+{
+    // Zooming directly into the given zoom rect means we do not necessarily
+    // align up with bin edges. When doing projections from a 2d widget and
+    // zooming in the counts in the 2d widget and the 1d projection can diverge
+    // slightly because of this.
+    // The fix is to adjust the zoom rect to align to each axis' bin edges.
+    QRectF adjustedRect;
+    if (auto histo = m_d->getCurrentHisto())
+    {
+        ResolutionReductionFactors rrf = {m_d->getRRF(), AxisBinning::NoResolutionReduction};
+        adjustedRect = snap_to_bin_edges(histo->getAxisBinning(Qt::XAxis),
+                                         histo->getAxisBinning(Qt::YAxis), zoomRect, rrf);
+        qDebug() << __PRETTY_FUNCTION__ << "zoomRect =" << zoomRect;
+    }
+    m_d->m_zoomer->zoom(adjustedRect);
+}
+
 void Histo1DWidgetPrivate::displayChanged()
 {
     auto scaleType = static_cast<AxisScaleType>(m_yScaleCombo->currentData().toInt());
@@ -1296,6 +1320,7 @@ void Histo1DWidgetPrivate::updateStatistics(u32 rrf)
     double thingsBelowGauss = a * s * Sqrt2Pi;
     // Scale with the max y value. This is the value of the maxBin
     thingsBelowGauss *= scaleFactor;
+    double relWidth = m_stats.fwhm / m_stats.fwhmCenter;
 
     static const QString gaussStatsTemplate = QSL(
         "<table>"
@@ -1303,6 +1328,7 @@ void Histo1DWidgetPrivate::updateStatistics(u32 rrf)
         "<tr><td align=\"left\">FWHM  </td><td>%L1</td></tr>"
         "<tr><td align=\"left\">Center</td><td>%L2</td></tr>"
         "<tr><td align=\"left\">Counts</td><td>%L3</td></tr>"
+        "<tr><td align=\"left\">Rel.Width</td><td>%L4</td></tr>"
         "</table>"
         );
 
@@ -1310,6 +1336,7 @@ void Histo1DWidgetPrivate::updateStatistics(u32 rrf)
         .arg(m_stats.fwhm)
         .arg(m_stats.fwhmCenter)
         .arg(thingsBelowGauss)
+        .arg(relWidth)
         ;
 
     if (!m_gaussStatsText)
@@ -1668,6 +1695,10 @@ void Histo1DWidget::setResolutionReductionFactor(u32 rrf)
         idx >= 0)
     {
         m_d->combo_maxRes_->setCurrentIndex(idx);
+    }
+    else
+    {
+        qDebug("Could not find rrf=%u (visBins=%u, physBins=%u) in combo box", rrf, visBins, physBins);
     }
 }
 

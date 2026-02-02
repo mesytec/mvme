@@ -4,6 +4,32 @@
 Changelog
 ##################################################
 
+Version 1.18.0-rc
+--------------------------------------------------
+
+* general:
+
+  - Multiple ui related crash and bugfixes.
+
+  - Disabled qt debug output in release builds. Might speed things up, especially under windows.
+
+  - Compatibility fix for very old listfiles recorded with the VMUSB.
+
+* analysis:
+
+  - Fixes for the histogram projection code.
+
+  - Fix for a crash when projecting from a '1d listview' histogram.
+
+  - h1d: add 'relative width' stat to the gauss info box.
+
+  - Fix rare crash in 'show dependency graph'.
+
+  - Allow larger 'rate monitor' capacities (2^30 up from 2^20).
+
+  - Immediately replot after selecting a new histogram from a histo array.
+    Forces and update of the axis scales which previously was delayed.
+
 Version 1.17.0
 --------------------------------------------------
 
