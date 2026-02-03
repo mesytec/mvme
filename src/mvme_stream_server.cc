@@ -25,7 +25,6 @@ struct MvmeStreamServer::Private
     std::unique_ptr<mvlc::IStreamServer> server_;
     std::mutex mutex_; // protects everything! :)
     size_t startupResult_ = false;
-    std::vector<u32> localBuffer_;
 };
 
 const std::vector<std::string> MvmeStreamServer::DefaultListenUris = {
@@ -96,26 +95,34 @@ void MvmeStreamServer::processBuffer(s32 bufferType, u32 bufferNumber, const u32
 {
     std::unique_lock<std::mutex> lock(d->mutex_);
     Q_UNUSED(bufferType);
+    assert(bufferSize > 0);
     assert(bufferSize <= std::numeric_limits<u32>::max());
 
-    size_t wordsNeeded = d->sendRawFormat_ ? bufferSize : (2 + bufferSize);
-    d->localBuffer_.resize(wordsNeeded);
+    std::array<u32, 2> frameHeader =
+    {
+        boost::endian::native_to_little(bufferNumber),
+        boost::endian::native_to_little(static_cast<u32>(bufferSize))
+    };
+
+    assert(frameHeader[1] != 0); // size should not be zero, not in little nor in big endian :)
+
+    std::array<mvlc::IStreamServer::IOV, 2> iovs;
+    iovs.fill({});
 
     if (!d->sendRawFormat_)
     {
-        d->localBuffer_[0] = boost::endian::native_to_little(bufferNumber);
-        d->localBuffer_[1] = boost::endian::native_to_little(static_cast<u32>(bufferSize));
+        d->logger_->debug("Sending framed MVME buffer with seq num {} ({:#010x}), size {} ({:#010x}) words",
+                      frameHeader[0], frameHeader[0], frameHeader[1], frameHeader[1]);
+
+        iovs[0] = { frameHeader.data(), frameHeader.size() * sizeof(u32) };
     }
 
-    // TODO: get rid of this copy. sendToAllClients() is blocking so we do not
-    // need to keep a copy around. Use the io gather overload of
-    // sendToAllClients() instead. That's why it was added.
-    std::transform(buffer, buffer + bufferSize,
-                   d->localBuffer_.data() + (d->sendRawFormat_ ? 0 : 2),
-                   [](u32 val) { return boost::endian::native_to_little(val); });
+    iovs[d->sendRawFormat_ ? 0 : 1] = { reinterpret_cast<const void *>(buffer), bufferSize * sizeof(u32) };
 
-    d->server_->sendToAllClients(reinterpret_cast<const u8 *>(d->localBuffer_.data()),
-                                 d->localBuffer_.size() * sizeof(u32));
+    d->server_->sendToAllClients(iovs.data(), d->sendRawFormat_ ? 1 : 2);
+
+    d->logger_->debug("Sent buffer with seq num {}, size {} words. Sent a total of {} bytes", bufferNumber,
+                  bufferSize, iovs[0].len + iovs[1].len);
 }
 
 void MvmeStreamServer::setLogger(StreamConsumerBase::Logger logger)
@@ -153,6 +160,9 @@ void MvmeStreamServer::reloadConfiguration()
         shutdown();
         return;
     }
+
+    if (!d->enabled_)
+        return;
 
     if (d->serverSettings == prevServerSettings)
     {
