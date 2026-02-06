@@ -828,7 +828,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
     , spin_jsonRPCListenPort(new QSpinBox)
     , spin_eventServerListenPort(new QSpinBox)
     , cb_ignoreStartupErrors(new QCheckBox("Ignore VME Init Startup Errors"))
-    , cb_sendRawFormat(new QCheckBox("Send Raw Format (no [sequence number, buffer size] prefix)"))
+    , cb_sendRawFormat(new QCheckBox)
     , m_bb(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this))
     , m_settings(settings)
 {
@@ -965,7 +965,19 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
         ));
         auto l = new QFormLayout(gb_streamServer);
         l->addRow(label);
-        l->addRow(cb_sendRawFormat);
+
+        auto h = new QHBoxLayout;
+        h->setContentsMargins(0, 0, 0, 0);
+        h->addWidget(cb_sendRawFormat);
+        {
+            auto l = new QLabel(QSL("Send Raw Format (no <b><tt>[sequence number, buffer "
+                                    "size]</tt></b> prefix is sent)"));
+            h->addWidget(l);
+            l->setBuddy(cb_sendRawFormat);
+        }
+        h->addStretch();
+        l->addRow(h);
+
         l->addRow(QSL("Listen URIs"), tw_streamServerListenUris);
         l->addRow(pb_streamServerRestoreDefaults);
     }
