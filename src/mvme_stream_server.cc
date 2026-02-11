@@ -22,7 +22,7 @@ struct MvmeStreamServer::Private
     std::vector<std::string> listenUris_;
     std::shared_ptr<spdlog::logger> logger_;
     StreamConsumerBase::Logger mvmeLogger_;
-    std::unique_ptr<mvlc::IStreamServer> server_;
+    std::unique_ptr<mvlc::stream::IStreamServer> server_;
     std::mutex mutex_; // protects everything! :)
     size_t startupResult_ = false;
 };
@@ -39,7 +39,7 @@ MvmeStreamServer::MvmeStreamServer()
     , d(std::make_unique<Private>())
 {
     d->logger_ = mvlc::get_logger("mvme_stream_server");
-    d->server_ = std::make_unique<mvlc::StreamServer>();
+    d->server_ = std::make_unique<mvlc::stream::StreamServer>();
 }
 
 MvmeStreamServer::~MvmeStreamServer() {}
@@ -94,7 +94,7 @@ void MvmeStreamServer::beginRun(const RunInfo &runInfo, const VMEConfig *vmeConf
         boost::endian::native_to_little(0),
         boost::endian::native_to_little(static_cast<u32>(preambleBody.size() / sizeof(u32)))
     };
-    std::array<mvlc::IStreamServer::IOV, 2> iovs;
+    std::array<mvlc::stream::IStreamServer::IOV, 2> iovs;
     iovs.fill({});
 
     if (!d->sendRawFormat_)
@@ -132,7 +132,7 @@ void MvmeStreamServer::processBuffer(s32 bufferType, u32 bufferNumber, const u32
     assert(frameHeader[1] != 0); // size should not be zero, not in little nor in big endian :)
 
     // Use an IOV array so we can send the (optional) header and the contents in one go.
-    std::array<mvlc::IStreamServer::IOV, 2> iovs;
+    std::array<mvlc::stream::IStreamServer::IOV, 2> iovs;
     iovs.fill({});
 
     if (!d->sendRawFormat_)
