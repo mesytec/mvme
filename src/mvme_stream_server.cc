@@ -125,6 +125,11 @@ void MvmeStreamServer::processBuffer(s32 bufferType, u32 bufferNumber, const u32
     assert(bufferSize > 0);
     assert(bufferSize <= std::numeric_limits<u32>::max());
 
+    if (!d->enabled_)
+    {
+        return;
+    }
+
     std::array<u32, 2> frameHeader = {
         boost::endian::native_to_little(bufferNumber),
         boost::endian::native_to_little(static_cast<u32>(bufferSize))};
