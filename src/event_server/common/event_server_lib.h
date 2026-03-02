@@ -276,7 +276,7 @@ void close_socket(int sock)
         throw exception("close_socket(): error: " + std::string(strerror(errno)));
 }
 
-// Connects via UDP to the given host and service (the port in our case).
+// Connects via TCP to the given host and service (the port in our case).
 // Returns the socket file descriptor on success, throws if an error occured.
 inline int connect_to(const char *host, const char *port)
 {
@@ -286,7 +286,7 @@ inline int connect_to(const char *host, const char *port)
 
     lookup(host, port, addr);
 
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (sock < 0)
     {
@@ -330,7 +330,11 @@ static void read_data(int fd, uint8_t *dest, size_t size)
 {
     while (size > 0)
     {
+#ifdef PLATFORM_WINDOWS
+        ssize_t bytesRead = ::recv(fd, reinterpret_cast<char *>(dest), size, 0);
+#else
         ssize_t bytesRead = ::read(fd, dest, size);
+#endif
 
         if (bytesRead < 0)
         {
