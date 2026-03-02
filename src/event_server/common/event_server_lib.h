@@ -215,7 +215,7 @@ static void lib_shutdown()
 #endif
 }
 
-void lookup(const char *host, const char* service, sockaddr_in &dest)
+inline void lookup(const char *host, const char* service, sockaddr_in &dest)
 {
     // FIXME (maybe): find a better error code to return here
     if (strlen(host) == 0)
@@ -256,7 +256,7 @@ void lookup(const char *host, const char* service, sockaddr_in &dest)
         throw exception("lookup(): no results found");
 }
 
-void lookup(const char *host, std::uint16_t port, sockaddr_in &dest)
+inline void lookup(const char *host, std::uint16_t port, sockaddr_in &dest)
 {
     char buffer[128];
     snprintf(buffer, sizeof(buffer), "%u", port);
@@ -265,7 +265,7 @@ void lookup(const char *host, std::uint16_t port, sockaddr_in &dest)
     return lookup(host, buffer, dest);
 }
 
-void close_socket(int sock)
+inline void close_socket(int sock)
 {
 #ifdef PLATFORM_WINDOWS
     int res = ::closesocket(sock);
