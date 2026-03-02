@@ -4,6 +4,12 @@
 Changelog
 ##################################################
 
+Version 1.17.3
+--------------------------------------------------
+
+* event_server: fix broken socket reads in the example (and ROOT) client under windows.
+
+
 Version 1.17.2
 --------------------------------------------------
 
