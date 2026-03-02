@@ -21,6 +21,7 @@
 
 #include "analysis/code_editor.h"
 #include "graphicsview_util.h"
+#include "graphviz_compat.h"
 #include "qt_util.h"
 #include "util/qt_eventfilters.h"
 
