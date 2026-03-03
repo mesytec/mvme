@@ -4,6 +4,19 @@
 Changelog
 ##################################################
 
+Version 1.17.5
+--------------------------------------------------
+
+* Fix a regression with MVLC FW0046 where the 'daq_start' trigger_io signal
+  did not become active when starting the DAQ.
+
+Version 1.17.4
+--------------------------------------------------
+
+* internal changes to stay compatible with newer graphviz versions(13, 14).
+
+* event_server: inline the functions to avoid duplicate definitions under linux
+
 Version 1.17.3
 --------------------------------------------------
 
