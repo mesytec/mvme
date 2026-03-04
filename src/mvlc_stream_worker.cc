@@ -217,7 +217,12 @@ void MVLC_StreamWorker::setupParserCallbacks(
             auto &moduleData = moduleDataList[parserModuleIndex];
             int moduleIndex = m_eventModuleIndexMaps[eventIndex][parserModuleIndex];
 
-            if (moduleData.data.size)
+            if (moduleIndex < 0)
+            {
+                logger->warn("mapped module index is out of range: eventIndex={}, originalModuleIndex={}, mappedModuleIndex={}",
+                    eventIndex, parserModuleIndex, moduleIndex);
+            }
+            else if (moduleData.data.size)
             {
                 if (m_diag)
                     m_diag->processModuleData(
@@ -225,14 +230,15 @@ void MVLC_StreamWorker::setupParserCallbacks(
 
                 UniqueLock guard(m_countersMutex);
                 m_counters.moduleCounters[eventIndex][moduleIndex]++;
+
+                if (m_state == WorkerState::SingleStepping)
+                {
+                    record_module_part(
+                        m_singleStepEventRecord, moduleIndex,
+                        moduleData.data.data, moduleData.data.size);
+                }
             }
 
-            if (m_state == WorkerState::SingleStepping)
-            {
-                record_module_part(
-                    m_singleStepEventRecord, moduleIndex,
-                    moduleData.data.data, moduleData.data.size);
-            }
         }
 
         // endEvent
