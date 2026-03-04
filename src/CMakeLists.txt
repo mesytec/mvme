@@ -67,8 +67,7 @@ message("-- Found boost for mvme in ${Boost_INCLUDE_DIRS}")
 
 # graphviz
 find_package(Graphviz REQUIRED)
-message("-- Using GRAPHVIZ_INCLUDE_DIRS=${GRAPHVIZ_INCLUDE_DIRS}")
-message("-- Using GRAPHVIZ_LIBRARIES=${GRAPHVIZ_LIBRARIES}")
+message("-- Found graphviz version ${GRAPHVIZ_VERSION}")
 
 # git version information is contained in its own translation unit. Allows for
 # quick build + relink on version change.

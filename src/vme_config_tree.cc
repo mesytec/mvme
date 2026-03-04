@@ -916,14 +916,18 @@ TreeNode *VMEConfigTreeWidget::addEventNode(TreeNode *parent, EventConfig *event
     eventNode->addChild(readoutLoopNode);
 
     {
-        auto node = makeNode(event->vmeScripts["readout_start"]);
+        auto scriptObj = event->vmeScripts["readout_start"];
+        auto node = makeNode(scriptObj);
+        m_treeMap[scriptObj] = node;
         node->setText(0, QSL("Cycle Start"));
         node->setIcon(0, QIcon(":/vme_script.png"));
         readoutLoopNode->addChild(node);
     }
 
     {
-        auto node = makeNode(event->vmeScripts["readout_end"]);
+        auto scriptObj = event->vmeScripts["readout_end"];
+        auto node = makeNode(scriptObj);
+        m_treeMap[scriptObj] = node;
         node->setText(0, QSL("Cycle End"));
         node->setIcon(0, QIcon(":/vme_script.png"));
         readoutLoopNode->addChild(node);
@@ -1116,9 +1120,20 @@ void VMEConfigTreeWidget::onItemClicked(QTreeWidgetItem *item, int column)
 
         if (auto qobj = get_qobject<QObject>(item, DataRole_Pointer))
         {
-            qDebug() << "Object:" << qobj
-                << ", name:" << qobj->objectName()
-                << ", class:" << qobj->metaObject()->className();
+            if (auto cfgObj = qobject_cast<ConfigObject *>(qobj))
+            {
+                qDebug() << "ConfigObject:" << cfgObj
+                    << ", name:" << cfgObj->objectName()
+                    << ", class:" << cfgObj->metaObject()->className()
+                    << ", id:" << cfgObj->getId();
+            }
+            else
+            {
+                qDebug() << "Object:" << qobj
+                    << ", name:" << qobj->objectName()
+                    << ", class:" << qobj->metaObject()->className()
+                    << ", non ConfigObject!";
+            }
         }
 
         if (auto moduleConfig = get_qobject<ModuleConfig>(item, DataRole_Pointer))

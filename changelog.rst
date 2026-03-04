@@ -30,6 +30,52 @@ Version 1.18.0-rc
   - Immediately replot after selecting a new histogram from a histo array.
     Forces and update of the axis scales which previously was delayed.
 
+Version 1.17.5
+--------------------------------------------------
+
+* Fix a regression with MVLC FW0046 where the 'daq_start' trigger_io signal
+  did not become active when starting the DAQ.
+
+Version 1.17.4
+--------------------------------------------------
+
+* internal changes to stay compatible with newer graphviz versions(13, 14).
+
+* event_server: inline the functions to avoid duplicate definitions under linux
+
+Version 1.17.3
+--------------------------------------------------
+
+* event_server: fix broken socket reads in the example (and ROOT) client under windows.
+
+
+Version 1.17.2
+--------------------------------------------------
+
+* Merge in VMUSB fixes from Chang, Jin-Hee <ChangJ@frib.msu.edu> & Ron Fox. This fixes IRQ
+  mask register handling in certain cases.
+
+* Compatibility with old (2017) VMUSB listfiles restored. These were
+  recorded before the SIS and MVLC controller existed.
+
+* Crash fixes in some of the listfile handling code.
+
+Version 1.17.1
+--------------------------------------------------
+
+* analysis:
+
+  - Fixes and updates to histogram projections. Zooming and on-the-fly
+    resolution reduction have been improved.
+
+  - Fix various UI related crashes
+
+- Add/update Dockerfiles for debian:testing, ubuntu:latest and ubuntu:rolling.
+  Remove the Dockerfiles running only tests but not doing packaging (less files,
+  less maintenance).
+
+- Compile fixes for gcc-15 and clang-19 (removed pre-ansi-c style MBS code, will revive if needed)
+
 Version 1.17.0
 --------------------------------------------------
 
