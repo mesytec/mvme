@@ -102,6 +102,43 @@ std::error_code check_readout_loop_start_end_scripts(const VMEConfig &vmeConfig,
     return {};
 }
 
+std::error_code check_multicast_start_stop_scripts(const VMEConfig &vmeConfig, Logger logger)
+{
+    auto eventConfigs = vmeConfig.getEventConfigs();
+
+    for (const auto &eventConfig: eventConfigs)
+    {
+        for (auto scriptCategory: { "daq_start", "daq_stop" })
+        {
+            if (auto scriptConf = eventConfig->vmeScripts.value(scriptCategory))
+            {
+                auto vmeScript = mvme::parse(scriptConf);
+                auto mvlcCommands = mvme::convert_script(vmeScript);
+
+                if (std::any_of(std::begin(mvlcCommands), std::end(mvlcCommands),
+                    [] (const auto &cmd) { return mvlc::produces_output(cmd); }))
+                {
+                    logger(QSL("Error: Script '%1' of event '%2' must not contain data producing commands (reads, block reads, ...).")
+                        .arg(scriptConf->objectName(), eventConfig->objectName()));
+                    return mvlc::make_error_code(mvlc::MVLCErrorCode::ReadoutSetupError);
+                }
+
+                if (std::any_of(std::begin(mvlcCommands), std::end(mvlcCommands),
+                    [] (const auto &cmd) { return cmd.type == mvlc::StackCommand::CommandType::SoftwareDelay; }))
+                {
+                    logger(
+                        QSL("Warning: Script '%1' of event '%2' contains a software 'wait' "
+                            "command. This will not have any effect, since the script is executed "
+                            "on the MVLC controller. Use 'mvlc_wait <clocks>' for on-FPGA delays.")
+                            .arg(scriptConf->objectName(), eventConfig->objectName()));
+                }
+            }
+        }
+    }
+
+    return {};
+}
+
 }
 
 std::error_code
@@ -111,6 +148,9 @@ std::error_code
         return ec;
 
     if (auto ec = check_readout_loop_start_end_scripts(vmeConfig, logger))
+        return ec;
+
+    if (auto ec = check_multicast_start_stop_scripts(vmeConfig, logger))
         return ec;
 
     return {};
