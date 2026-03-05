@@ -18,7 +18,7 @@ struct MvmeStreamServer::Private
     // Holds the StreamServer/* settings. Used to detect config changes.
     std::map<QString, QVariant> serverSettings;
     bool enabled_ = false;
-    bool sendRawFormat_ = false;
+    bool sendRawFormat_ = true;
     std::vector<std::string> listenUris_;
     std::shared_ptr<spdlog::logger> logger_;
     StreamConsumerBase::Logger mvmeLogger_;
@@ -134,7 +134,7 @@ void MvmeStreamServer::processBuffer(s32 bufferType, u32 bufferNumber, const u32
         boost::endian::native_to_little(bufferNumber),
         boost::endian::native_to_little(static_cast<u32>(bufferSize))};
 
-    assert(frameHeader[1] != 0); // size should not be zero, not in little nor in big endian :)
+    assert(frameHeader[1] != 0); // size should not be zero, neither in little nor in big endian :)
 
     // Use an IOV array so we can send the (optional) header and the contents in one go.
     std::array<mvlc::stream::IStreamServer::IOV, 2> iovs;
@@ -180,7 +180,7 @@ void MvmeStreamServer::reloadConfiguration()
     }
 
     d->enabled_ = settings.value(QSL("Enabled")).toBool();
-    d->sendRawFormat_ = settings.value(QSL("SendRawFormat")).toBool();
+    d->sendRawFormat_ = settings.value(QSL("SendRawFormat"), true).toBool();
 
     d->logger_->trace("MvmeStreamServer::reloadConfiguration(): StreamServer/Enabled={}",
                       d->enabled_);

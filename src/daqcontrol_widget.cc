@@ -828,7 +828,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
     , spin_jsonRPCListenPort(new QSpinBox)
     , spin_eventServerListenPort(new QSpinBox)
     , cb_ignoreStartupErrors(new QCheckBox("Ignore VME Init Startup Errors"))
-    , cb_sendRawFormat(new QCheckBox)
+    //, cb_sendRawFormat(new QCheckBox)
     , m_bb(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this))
     , m_settings(settings)
 {
@@ -915,6 +915,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
     }
 
     // Stream Server - duplicates the readout data stream
+    //cb_sendRawFormat->setChecked(true);
     gb_streamServer->setCheckable(true);
     tw_streamServerListenUris->setColumnCount(1);
     tw_streamServerListenUris->verticalHeader()->setVisible(false);
@@ -968,6 +969,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
 
         auto h = new QHBoxLayout;
         h->setContentsMargins(0, 0, 0, 0);
+        #if 0 // TODO: enable once there's a decent client, able to handle the framed format.
         h->addWidget(cb_sendRawFormat);
         {
             auto l = new QLabel(QSL("Send Raw Format (no <b><tt>[sequence number, buffer "
@@ -975,6 +977,7 @@ WorkspaceSettingsDialog::WorkspaceSettingsDialog(const std::shared_ptr<QSettings
             h->addWidget(l);
             l->setBuddy(cb_sendRawFormat);
         }
+        #endif
         h->addStretch();
         l->addRow(h);
 
@@ -1024,7 +1027,7 @@ void WorkspaceSettingsDialog::populate()
     spin_eventServerListenPort->setValue(m_settings->value(QSL("EventServer/ListenPort")).toInt());
 
     gb_streamServer->setChecked(m_settings->value(QSL("StreamServer/Enabled"), false).toBool());
-    cb_sendRawFormat->setChecked(m_settings->value(QSL("StreamServer/SendRawFormat"), false).toBool());
+    //cb_sendRawFormat->setChecked(m_settings->value(QSL("StreamServer/SendRawFormat"), false).toBool());
 
     auto uris = m_settings->value(QSL("StreamServer/ListenUris")).toStringList();
 
@@ -1066,7 +1069,7 @@ void WorkspaceSettingsDialog::accept()
     m_settings->setValue(QSL("EventServer/ListenPort"), spin_eventServerListenPort->value());
 
     m_settings->setValue(QSL("StreamServer/Enabled"), gb_streamServer->isChecked());
-    m_settings->setValue(QSL("StreamServer/SendRawFormat"), cb_sendRawFormat->isChecked());
+    //m_settings->setValue(QSL("StreamServer/SendRawFormat"), cb_sendRawFormat->isChecked());
 
     QStringList uris;
     for (int row = 0; row < tw_streamServerListenUris->rowCount(); ++row)

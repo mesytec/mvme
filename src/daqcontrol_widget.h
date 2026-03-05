@@ -180,8 +180,8 @@ class LIBMVME_EXPORT WorkspaceSettingsDialog: public QDialog
         QSpinBox *spin_jsonRPCListenPort,
                  *spin_eventServerListenPort;
 
-        QCheckBox *cb_ignoreStartupErrors,
-                  *cb_sendRawFormat;
+        QCheckBox *cb_ignoreStartupErrors;
+                  //*cb_sendRawFormat;
 
         QDialogButtonBox *m_bb;
 
