@@ -851,7 +851,7 @@ void MVLC_StreamWorker::doArtificalDelay()
 
 namespace
 {
-    bool is_timetick_only_buffer(const nonstd::basic_string_view<u32> &buffer)
+    bool is_timetick_only_buffer(const nonstd::basic_string_view<const u32> &buffer)
     {
         using namespace mesytec::mvlc;
 
