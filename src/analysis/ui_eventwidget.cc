@@ -2694,6 +2694,7 @@ void EventWidgetPrivate::repopulate()
     Q_ASSERT(m_displayFrameSplitter->count() == 0);
 
     m_objectMap.clear();
+    m_placedObjects.clear();
 
     // populate
     // This populates m_d->m_levelTrees
