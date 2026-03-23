@@ -4090,6 +4090,8 @@ EventSettingsDialog::EventSettingsDialog(
             spin_histoBinCount->setMaximum(1u << 16);
             spin_histoMinValue->setMinimum(std::numeric_limits<s32>::lowest());
             spin_histoMinValue->setMaximum(std::numeric_limits<s32>::max());
+            spin_histoMaxValue->setMinimum(std::numeric_limits<s32>::lowest());
+            spin_histoMaxValue->setMaximum(std::numeric_limits<s32>::max());
 
             auto l = new QFormLayout(histoSettingsWidget);
             l->addRow("Bin Count", spin_histoBinCount);
