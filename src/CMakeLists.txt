@@ -347,7 +347,7 @@ target_link_libraries(libmvme
     PRIVATE range-v3::range-v3
     PUBLIC ${QUAZIP_QT5}
     PUBLIC ${QWT_LIBRARY}
-    PUBLIC BFG::Lyra
+    PUBLIC bfg::lyra
     PUBLIC Qt5::Concurrent
     PUBLIC Qt5::Gui
     PUBLIC Qt5::Network
