@@ -15,6 +15,8 @@ Version 1.18.0-rc
 
   - Compatibility fix for very old listfiles recorded with the VMUSB.
 
+  - Fix a deadlock when pausing the DAQ while the event builder is active.
+
 * analysis:
 
   - Fixes for the histogram projection code.
@@ -29,6 +31,24 @@ Version 1.18.0-rc
 
   - Immediately replot after selecting a new histogram from a histo array.
     Forces and update of the axis scales which previously was delayed.
+
+  - ui: Allow larger range for event builder histograms axes.
+
+  - Improve the event builder (aka timestamp sorter) to gracefully handle the
+    case where none of the modules in an incoming event yields a valid timestamp.
+    This case was not handled properly and lead to excess buffering and eventual
+    halt of the analysis processing.
+
+* daq:
+
+  - MVLC export: add more mvme metadata to exported mvlc crateconfig yaml files.
+
+  - Better config checks prior to daq start. It's now an error to have data
+    producing readout commands in the event multicast start/stop sequences.
+
+  - Add a stream server for streaming raw readout data over TCP or UNIX. Uses
+    async asio calls to efficiently stream buffers to multiple clients.
+
 
 Version 1.17.5
 --------------------------------------------------
