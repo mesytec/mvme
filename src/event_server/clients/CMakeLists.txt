@@ -20,10 +20,6 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/mvme_event_server_example_client/
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/mvme_root_client/"
     DESTINATION share/mvme_root_client)
 
-include(FetchContent)
-FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11 GIT_TAG v2.13.6)
-FetchContent_MakeAvailable(pybind11)
-
 if (pybind11_FOUND)
     add_executable(mvme_event_server_python_client mvme_event_server_python_client/mvme_event_server_python_client.cc)
     target_link_libraries(mvme_event_server_python_client PRIVATE nlohmann-json pybind11::embed)
