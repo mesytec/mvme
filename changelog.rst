@@ -4,7 +4,7 @@
 Changelog
 ##################################################
 
-Version 1.18.0-rc
+Version 1.18.0-rc1
 --------------------------------------------------
 
 * general:
@@ -46,8 +46,12 @@ Version 1.18.0-rc
   - Better config checks prior to daq start. It's now an error to have data
     producing readout commands in the event multicast start/stop sequences.
 
-  - Add a stream server for streaming raw readout data over TCP or UNIX. Uses
-    async asio calls to efficiently stream buffers to multiple clients.
+  - Add a stream server for streaming raw readout data over TCP or UNIX. If
+    enabled this currently forwars the raw unmodified MVLC readout stream.
+    Uses async send calls to efficiently stream buffers to multiple clients in
+    parallel.
+
+    A simple settings GUI is under 'Workspace Settings -> Stream Server'.
 
 
 Version 1.17.5
