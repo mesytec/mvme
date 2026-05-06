@@ -1444,12 +1444,10 @@ EventWidget::EventWidget(AnalysisServiceProvider *serviceProvider, AnalysisWidge
     auto actionEbMonitor = new QAction(QIcon(":/info.png"), "Event Builder Monitor");
 
     connect(actionEbMonitor, &QAction::triggered, this, [this] {
-        if (auto w = find_top_level_widget("EventBuilderMonitorWidget"))
-        {
-            w->activateWindow();
-            w->raise();
-        }
-        else
+
+        QWidget *widget = find_top_level_widget("EventBuilderMonitorWidget");
+
+        if (!widget)
         {
             auto ebMonitor = new EventBuilderMonitorWidget(getServiceProvider());
             ebMonitor->setObjectName("EventBuilderMonitorWidget");
@@ -1468,7 +1466,11 @@ EventWidget::EventWidget(AnalysisServiceProvider *serviceProvider, AnalysisWidge
                 QSettings s;
                 s.setValue("EventBuilderMonitorWidget/WindowState", ebMonitor->saveState());
             });
+
+            widget = ebMonitor;
         }
+
+        show_and_activate(widget);
     });
 
     // create the lower toolbar
