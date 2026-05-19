@@ -949,7 +949,7 @@ VMEError VMUSB::setIrqMask(int val)
         return error;
 
     maskSet = (maskSet & 0x7f000000) >> 24;
-    if (maskSet != val)
+    if (maskSet != static_cast<unsigned>(val))
         return VMEError(VMEError::BusError, QSL("Read IRQ mask is different from the written!"));
 
     error = setMode(0);

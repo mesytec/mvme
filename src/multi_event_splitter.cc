@@ -363,7 +363,7 @@ std::error_code event_data(State &state, Callbacks &callbacks, void *userContext
         {
             for (size_t mi = 0; mi < moduleCount; ++mi)
             {
-                if (mi < static_cast<int>(state.counters.outputModules[ei].size()))
+                if (mi < state.counters.outputModules[ei].size())
                 {
                     ++state.counters.outputModules[ei][mi];
                 }
