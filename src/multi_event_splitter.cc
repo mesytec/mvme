@@ -359,11 +359,11 @@ std::error_code event_data(State &state, Callbacks &callbacks, void *userContext
 
         callbacks.eventData(userContext, state.outputCrateIndex, ei, moduleDataList, moduleCount);
 
-        if (ei < state.counters.outputModules.size())
+        if (ei < static_cast<int>(state.counters.outputModules.size()))
         {
             for (size_t mi = 0; mi < moduleCount; ++mi)
             {
-                if (mi < state.counters.outputModules[ei].size())
+                if (mi < static_cast<int>(state.counters.outputModules[ei].size()))
                 {
                     ++state.counters.outputModules[ei][mi];
                 }
@@ -378,7 +378,7 @@ std::error_code event_data(State &state, Callbacks &callbacks, void *userContext
             LOG_WARN("event_data(): counters.outputModules: eventIndex=%d is out of range!", ei);
         }
 
-        if (ei < state.counters.outputEvents.size())
+        if (ei < static_cast<int>(state.counters.outputEvents.size()))
         {
             ++state.counters.outputEvents[ei];
         }
