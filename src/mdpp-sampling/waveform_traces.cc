@@ -106,7 +106,7 @@ std::vector<const Trace *> get_trace_column(const TraceHistories &history, size_
 {
     auto accu = [traceIndex] (std::vector<const waveforms::Trace *> &acc, const waveforms::TraceHistory &history)
     {
-        if (static_cast<size_t>(traceIndex) < history.size())
+        if (traceIndex < history.size())
             acc.push_back(&history[traceIndex]);
         return acc;
     };
