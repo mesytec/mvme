@@ -304,6 +304,12 @@ struct MultiPlotWidget::Private
                 }
             }
 
+            // Reapply axis scaling to the newly created PlotEntries. If this is
+            // not done the y axis will go back to linear scaling on the next
+            // replot.
+            auto axisScaling = static_cast<AxisScaleType>(combo_axisScaleType_->currentData().toInt());
+            this->setAxisScaling(axisScaling);
+
             e->plot()->replot();
         }
 
