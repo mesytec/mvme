@@ -7,6 +7,11 @@ Changelog
 Version 1.17.99
 --------------------------------------------------
 
+Important: mvme-1.18 contains the new event builder implementation which has a
+slightly different configuration than the old version. An attempt is made to
+convert the old config to the new format on load, but settings have to be
+manually reviewed in 'Processing Settings -> Event Builder Settings'.
+
 * general:
 
   - Multiple ui related crash and bugfixes.
@@ -16,6 +21,9 @@ Version 1.17.99
   - Compatibility fix for very old listfiles recorded with the VMUSB.
 
   - Fix a deadlock when pausing the DAQ while the event builder is active.
+
+  - Can now load and replay listfiles that contain only a MVLC CrateConfig but
+    not a mvme VMEConfig.
 
 * analysis:
 
@@ -52,6 +60,8 @@ Version 1.17.99
     parallel.
 
     A simple settings GUI is under 'Workspace Settings -> Stream Server'.
+
+* templates: Update the description of 'sample_source' in the MDPP32_QDC template.
 
 
 Version 1.17.5
