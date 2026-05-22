@@ -4585,7 +4585,7 @@ QString ExportSink::getDataFileName(const RunInfo &runInfo) const
 
 QString ExportSink::getExportFileBasename() const
 {
-    return QFileInfo(getOutputPrefixPath()).baseName();
+    return QFileInfo(getOutputPrefixPath()).completeBaseName();
 }
 
 //

@@ -400,12 +400,12 @@ QPair<bool, QString> AnalysisWidgetPrivate::actionSaveAs()
         {
             // Use the listfile basename to suggest a filename.
             const auto &replayHandle = m_serviceProvider->getReplayFileHandle();
-            filename = QFileInfo(replayHandle.inputFilename).baseName();
+            filename = QFileInfo(replayHandle.inputFilename).completeBaseName();
         }
         else if (!m_serviceProvider->getVMEConfigFilename().isEmpty())
         {
             // Use the current vme config name to suggest a filename.
-            filename = QFileInfo(m_serviceProvider->getVMEConfigFilename()).baseName();
+            filename = QFileInfo(m_serviceProvider->getVMEConfigFilename()).completeBaseName();
         }
         else
         {

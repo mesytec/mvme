@@ -228,7 +228,7 @@ std::unique_ptr<QMenu> make_menu_load_mvlc_trigger_io(
 
     for (const auto &scriptInfo: scripts)
     {
-        auto title = scriptInfo.fileInfo.baseName();
+        auto title = scriptInfo.fileInfo.completeBaseName();
 
         if (title.startsWith(ScriptPrefix))
             title.remove(0, ScriptPrefix.size());
@@ -2216,7 +2216,7 @@ void VMEConfigTreeWidget::loadScriptFromFile()
     if (scriptContents.isEmpty())
         return;
 
-    auto scriptName = QFileInfo(filename).baseName();
+    auto scriptName = QFileInfo(filename).completeBaseName();
     auto scriptConfig = std::make_unique<VMEScriptConfig>();
     scriptConfig->setObjectName(scriptName);
     scriptConfig->setScriptContents(scriptContents);

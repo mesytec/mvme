@@ -177,7 +177,7 @@ LastlogHelper::LastlogHelper(QDir logDir, const QString &logfileName,
         // Attempt to open a different file (name is based on process id) to log into.
         // If this also fails it's not the end of the world: logging is buffered inside mvme
         // and this buffer is stored in listfile archives (messages.log).
-        auto base = QFileInfo(logfileName).baseName();
+        auto base = QFileInfo(logfileName).completeBaseName();
         auto ext  = QFileInfo(logfileName).completeSuffix();
         auto altLogFilename = QSL("%1-pid%2.%3").arg(base).arg(QCoreApplication::applicationPid()).arg(ext);
 

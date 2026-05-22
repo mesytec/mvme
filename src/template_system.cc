@@ -126,7 +126,7 @@ namespace
             }
             else
             {
-                vmeTemplate.name = QFileInfo(fileName).baseName();
+                vmeTemplate.name = QFileInfo(fileName).completeBaseName();
             }
 
             result.init.push_back(vmeTemplate);
@@ -626,7 +626,7 @@ GenericVMEScriptInfo read_default_mvlc_trigger_io_script()
 {
     for (const auto &scriptInfo: read_mvlc_trigger_io_scripts())
     {
-        if (scriptInfo.fileInfo.baseName() == QSL("mvlc_trigger_io-Default_Trigger_IO"))
+        if (scriptInfo.fileInfo.completeBaseName() == QSL("mvlc_trigger_io-Default_Trigger_IO"))
             return scriptInfo;
     }
 

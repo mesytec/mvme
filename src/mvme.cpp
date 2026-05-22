@@ -1178,7 +1178,7 @@ bool MVMEMainWindow::onActionSaveVMEConfigAs_triggered()
     {
         // Use the listfile basename to suggest a filename.
         const auto &replayHandle = m_d->m_context->getReplayFileHandle();
-        path += "/" +  QFileInfo(replayHandle.listfileFilename).baseName() + ".vme";
+        path += "/" +  QFileInfo(replayHandle.listfileFilename).completeBaseName() + ".vme";
     }
     else
     {
@@ -1358,7 +1358,7 @@ void MVMEMainWindow::onActionImportFromMVLC_triggered()
         // Strip the extension from the input filename, add "-imported.vme" and use
         // that as the suggested vme config name.
         QFileInfo fi(fileName);
-        auto configName = fi.baseName() + QSL("-imported.vme");
+        auto configName = fi.completeBaseName() + QSL("-imported.vme");
 
         m_d->m_context->setVMEConfig(vmeConfig.release());
         m_d->m_context->setVMEConfigFilename(configName, false);
