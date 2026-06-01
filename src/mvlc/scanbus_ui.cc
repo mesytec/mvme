@@ -49,14 +49,17 @@ struct MvlcScanbusWidget::Private
         }
 
         auto mvlcObj = mvlc_->getMVLCObject();
-
         mvlcAddress_->setText(mvlcObj->connectionInfo().c_str());
+
+        if (!watcher_.isRunning())
+            pd.reset();
     }
 
     void startScanbus()
     {
         auto f = QtConcurrent::run(this, &MvlcScanbusWidget::Private::doScanbus);
         watcher_.setFuture(f);
+        pd.reset();
         pd.show();
     }
 
@@ -203,7 +206,11 @@ MvlcScanbusWidget::~MvlcScanbusWidget()
 
 void MvlcScanbusWidget::setMvlc(mvme_mvlc::MVLC_VMEController *mvlc)
 {
-    disconnect(d->mvlc_, nullptr, this, nullptr);
+    if (d->mvlc_)
+    {
+        disconnect(d->mvlc_, nullptr, this, nullptr);
+    }
+
     d->mvlc_ = mvlc;
 
     if (d->mvlc_)
