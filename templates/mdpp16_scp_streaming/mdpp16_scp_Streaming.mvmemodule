@@ -1,7 +1,7 @@
 {
     "ModuleConfig": {
         "ModuleMeta": {
-            "displayName": "MDPP-16_SCP_streaming",
+            "displayName": "MDPP-16_SCP_compact_streaming",
             "eventHeaderFilter": "0100 XXXX MMMM MMMM XXXX XXXX XXXX XXXX",
             "typeName": "mdpp16_scp_streaming",
             "variables": [
