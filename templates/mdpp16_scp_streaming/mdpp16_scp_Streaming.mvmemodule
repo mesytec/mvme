@@ -2,7 +2,16 @@
     "ModuleConfig": {
         "ModuleMeta": {
             "displayName": "MDPP-16_SCP_compact_streaming",
-            "eventHeaderFilter": "0100 XXXX MMMM MMMM XXXX XXXX XXXX XXXX",
+            "eventHeaderFilters": [
+                {
+                    "filter": "0100XXX0MMMMMMMMXXXXXXSSSSSSSSSS",
+                    "description": "Event size filter for the classic, non-sampling mode."
+                },
+                {
+                    "filter": "0100XXX1MMMMMMMMSSSSSSSSSSSSSSSS",
+                    "description": "Event size filter with extended size bits for sampling mode."
+                }
+            ],
             "typeName": "mdpp16_scp_streaming",
             "variables": [
             ],
