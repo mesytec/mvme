@@ -488,7 +488,7 @@ ModuleConfigDialog::ModuleConfigDialog(ModuleConfig *mod,
         d->moduleMetas_.push_back(thisMeta);
 
     /* Sort by vendorName and then displayName, giving the vendorName "mesytec"
-     * the highest priority. Modules without a vendor name always have to the
+     * the highest priority. Modules without a vendor name always have the
      * lowest prio. */
     std::sort(d->moduleMetas_.begin(), d->moduleMetas_.end(),
               [](const VMEModuleMeta &a, const VMEModuleMeta &b)
