@@ -310,6 +310,7 @@ add_library(libmvme SHARED
     vme_config_ui_variable_editor.cc
     vme_config_util.cc
     vme_config_version.cc
+    vme_config_diff.cc
     vme_controller.cpp
     vme_controller_factory.cc
     vme_controller_ui.cc
@@ -610,6 +611,7 @@ install(TARGETS mvme_multicrate_readout2 RUNTIME DESTINATION bin LIBRARY DESTINA
 add_mvme_exe(qfuturewatcher_fire_forget qfuturewatcher_fire_forget.cc)
 add_mvme_exe(statemachine_test statemachine_test.cc)
 add_mvme_dev_exe(dev_some_gui_thing dev_some_gui_thing.cc)
+add_mvme_dev_exe(dev_vme_config_diff dev_vme_config_diff.cc)
 
 add_custom_target(multicrate2_dev_tools)
 add_dependencies(multicrate2_dev_tools
