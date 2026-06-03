@@ -99,15 +99,15 @@
 # ############################################################################
 # negative_edge
 0x6060  0b00        # bit0: bank0, bit1: bank1
-                    # for differential (ECL, PECL or LVDS) input (-> diff jumpers)set b00
+                    # for differential (ECL, PECL or LVDS) input (-> diff jumpers)set 0b00
                     #                                         (trigger when +input gets pos and -input gets neg)
-                    # for NIM input (unipol jumpers)  set b11 (trigger on negative edge)
-                    # for TTL input (unipol jumpers)  set b00 (trigger on positive edge)
+                    # for NIM input (unipol jumpers)  set 0b00 (trigger on negative edge)
+                    # for TTL input (unipol jumpers)  set 0b11 (trigger on positive edge)
 
 # bank0_input_thr
 0x6078  105         # Discriminator level for unipolar input bank0. 128=0V,0=-1.7V,255=+1.7V
                     # For NIM 105 is optimum (threshold -170mV).
-                    # For TTL 240 is optimum (threshold + 1.5V
+                    # For TTL 240 is optimum (threshold + 1.5V).
 
 # bank1_input_thr
 0x607A  105         # Discriminator level for bank1.
