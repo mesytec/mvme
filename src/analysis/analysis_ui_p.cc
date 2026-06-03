@@ -4525,7 +4525,7 @@ void MVLCParserDebugHandler::handleDebugInfo(
             << ", moduleParseState=" << to_string(parserState.groupParseState)
             << endl;
 
-        out << "Parser readoutInfo:" << endl;
+        out << "Parser readout info:" << endl;
 
         for (const auto &eventIter: parserState.readoutStructure | indexed(0))
         {
@@ -4638,11 +4638,23 @@ void MVLCParserDebugHandler::handleDebugInfo(
         // callback. These will receive and log the input data and hand it
         // down to the splitter code if splitting is enabled.
 
-        auto log_module_part = [&parserOut] (
+        auto log_module_part = [&] (
             const QString &partName, int ei, int mi, const u32 *data, u32 size)
         {
-            parserOut << QString("  module%4, ei=%1, mi=%2, size=%3:")
-                .arg(ei).arg(mi).arg(size).arg(partName)
+            auto &readoutStructure = parserState.readoutStructure;
+            std::string moduleName;
+
+            try
+            {
+                moduleName = readoutStructure.at(ei).at(mi).name;
+            }
+            catch (const std::out_of_range &)
+            {
+                moduleName = "unknown";
+            }
+
+            parserOut << QString("  module%4, ei=%1, mi=%2, size=%3, module_name=%5:")
+                .arg(ei).arg(mi).arg(size).arg(partName).arg(moduleName.c_str())
                 << endl;
 
             ::logBuffer(
@@ -4655,7 +4667,14 @@ void MVLCParserDebugHandler::handleDebugInfo(
         parserCallbacks.eventData = [&] (
             void *, int /*crateIndex*/, int ei, const ModuleData *moduleDataList, unsigned moduleCount)
         {
-            parserOut << "beginEvent(ei=" << ei << ")" << endl;
+            QString eventName("unknown");;
+
+            if (auto eventConfig = vmeConfig->getEventConfig(ei))
+            {
+                eventName = eventConfig->objectName();
+            }
+
+            parserOut << "beginEvent(ei=" << ei << ", event_name=" << eventName << ")" << endl;
 
             for (unsigned mi=0; mi<moduleCount; ++mi)
             {
@@ -4664,7 +4683,7 @@ void MVLCParserDebugHandler::handleDebugInfo(
                 log_module_part("Data", ei, mi, moduleData.data.data, moduleData.data.size);
             }
 
-            parserOut << "endEvent(ei=" << ei << ")" << endl;
+            parserOut << "endEvent(ei=" << ei << ", event_name=" << eventName << ")" << endl;
 
             if (usesMultiEventSplitting && !multiEventSplitterError)
             {
@@ -4690,11 +4709,17 @@ void MVLCParserDebugHandler::handleDebugInfo(
                 {
                     for (unsigned mi = 0; mi < moduleCount; ++mi)
                     {
+                        QString moduleName("unknown");
+                        if (auto moduleConfig = vmeConfig->getModuleConfig(ei, mi))
+                        {
+                            moduleName = moduleConfig->objectName();
+                        }
+
                         if (outIdx < splitModuleData[mi].size())
                         {
                             const auto &moduleData = splitModuleData[mi][outIdx];
-                            splitterOut << QString("  moduleSplit, ei=%2, mi=%3, size=%4:")
-                                .arg(ei).arg(mi).arg(moduleData.md.data.size);
+                            splitterOut << QString("  moduleSplit, ei=%1, mi=%2, size=%3, event_name=%4, module_name=%5:")
+                                .arg(ei).arg(mi).arg(moduleData.md.data.size).arg(eventName).arg(moduleName);
 
                             if (moduleData.flags & mesytec::mvme::multi_event_splitter::ProcessingFlags::ModuleHeaderMismatch)
                                 splitterOut << " error: ModuleHeaderMismatch";
@@ -4712,8 +4737,8 @@ void MVLCParserDebugHandler::handleDebugInfo(
                         }
                         else
                         {
-                            splitterOut << QSL("  module%1, ei=%2, mi=%3: no data")
-                                .arg("Split").arg(ei).arg(mi) << endl;
+                            splitterOut << QSL("  module%1, ei=%2, mi=%3, event_name=%4, module_name=%5: no data")
+                                .arg("Split").arg(ei).arg(mi).arg(eventName).arg(moduleName) << endl;
                         }
                     }
                 }
