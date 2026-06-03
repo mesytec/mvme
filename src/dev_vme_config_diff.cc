@@ -21,6 +21,7 @@
 #include "vme_config_diff.h"
 #include "vme_config_util.h"
 #include "template_system.h"
+#include "mvme_session.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -176,6 +177,7 @@ void test_file_diff(const QString& file1, const QString& file2)
 
 int main(int argc, char *argv[])
 {
+    register_mvme_qt_metatypes();
     QCoreApplication app(argc, argv);
 
     if (argc == 3)
