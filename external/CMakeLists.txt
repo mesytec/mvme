@@ -78,3 +78,7 @@ if (NOT TARGET range-v3::meta)
     set(RANGES_DEBUG_INFO OFF)
     add_subdirectory(range-v3-0.12.0)
 endif()
+
+# dtl - c++ diff template library
+add_library(dtl INTERFACE)
+target_include_directories(dtl INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
