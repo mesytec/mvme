@@ -54,6 +54,7 @@
 #include "util/qt_fs.h"
 #include "util/qt_gui_io.h"
 #include "vme_config.h"
+#include "vme_config_diff.h"
 #include "vme_config_scripts.h"
 #include "vme_config_ui.h"
 #include "vme_config_util.h"
@@ -1540,6 +1541,21 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
                 QIcon(QSL(":/document-save.png")),
                 "Save Module to File",
                 [this, moduleConfig] { saveModuleToFile(moduleConfig); });
+
+            menu.addAction(
+                QIcon(QSL(":/")), QSL("Compare with template"), [this, moduleConfig]
+                {
+                    auto diff = vme_config::diff_module_against_template(moduleConfig);
+                    // Show in simple dialog:
+                    auto *dialog = new QDialog(this);
+                    dialog->setWindowTitle("Diff: " + moduleConfig->objectName() + " vs Template");
+                    auto l = new QVBoxLayout(dialog);
+                    auto text = new QTextEdit();
+                    l->addWidget(text);
+                    text->setPlainText(diff.toText());
+                    text->setReadOnly(true);
+                    dialog->show();
+                });
         }
     }
 

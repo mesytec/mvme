@@ -129,12 +129,20 @@ public:
     // Set the root diff node (used by diff_configs)
     void setDiffRoot(std::unique_ptr<DiffNode> root);
 
+    void takeOwnership(std::unique_ptr<ConfigObject> &&obj)
+    {
+        m_ownedObjects.push_back(std::move(obj));
+    }
+
 private:
     void buildObjectMap();
     void buildObjectMapRecursive(const DiffNode* node);
 
     std::unique_ptr<DiffNode> m_root;
     QMap<QUuid, const DiffNode*> m_objectMap;  // Fast lookup by ID
+    // Need to keep objects alive when diffing against the template baseline.
+    // Otherwise DiffNode::original and DiffNode::modified would dangle.
+    std::vector<std::unique_ptr<ConfigObject>> m_ownedObjects;
 };
 
 // Main diffing function - compares two config object trees
@@ -144,6 +152,14 @@ LIBMVME_EXPORT ConfigDiff diff_configs(const ConfigObject* a, const ConfigObject
 LIBMVME_EXPORT ConfigDiff diff_vme_configs(const VMEConfig* a, const VMEConfig* b);
 LIBMVME_EXPORT ConfigDiff diff_event_configs(const EventConfig* a, const EventConfig* b);
 LIBMVME_EXPORT ConfigDiff diff_module_configs(const ModuleConfig* a, const ModuleConfig* b);
+
+// Helper function to diff against the template baseline.
+// These return a pair of objects: the diff and the new object, created form the
+// vast system. The object has to outlive the Diff structures, otherwise thing
+// wil crash and burn.
+LIBMVME_EXPORT ConfigDiff diff_module_against_template(const ModuleConfig* mod);
+LIBMVME_EXPORT ConfigDiff diff_event_against_template(const EventConfig* event);
+
 
 } // namespace mesytec::mvme::vme_config
 

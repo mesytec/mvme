@@ -25,6 +25,7 @@
 #include <QSet>
 #include <QTextStream>
 #include "dtl/dtl.hpp"
+#include "vme_config_util.h"
 
 namespace mesytec::mvme::vme_config
 {
@@ -635,6 +636,38 @@ ConfigDiff diff_event_configs(const EventConfig* a, const EventConfig* b)
 ConfigDiff diff_module_configs(const ModuleConfig* a, const ModuleConfig* b)
 {
     return diff_configs(static_cast<const ConfigObject*>(a), static_cast<const ConfigObject*>(b));
+}
+
+ConfigDiff diff_module_against_template(const ModuleConfig* mod)
+{
+
+    auto mm = vats::get_module_meta_by_typename(vats::read_templates(), mod->getModuleMeta().typeName);
+    auto templateMod = std::make_unique<ModuleConfig>();
+    templateMod->setModuleMeta(mm ? *mm : vats::VMEModuleMeta());
+
+    // FIXME: it's way more work to correctly construct a module. check
+    // ModuleConfigDialog for how it's done.
+
+
+
+    auto ret = diff_configs(mod, templateMod.get());
+    ret.takeOwnership(std::move(templateMod));
+    return ret;
+}
+
+ConfigDiff diff_event_against_template(const EventConfig* event)
+{
+    // defaults used in mvme. not DRY but good enough for now.
+    const u8 irq = 1;
+    const u8 mcst = 0xbb;
+    auto templateEvent = std::make_unique<EventConfig>();
+    templateEvent->triggerCondition = TriggerCondition::Interrupt;
+    templateEvent->irqLevel = irq;
+    auto vars = vme_config::make_standard_event_variables(irq, mcst);
+    templateEvent->setVariables(vars);
+    auto ret = diff_configs(event, templateEvent.get());
+    ret.takeOwnership(std::move(templateEvent));
+    return ret;
 }
 
 } // namespace mesytec::mvme::vme_config
