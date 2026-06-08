@@ -1,32 +1,6 @@
-/* mvme - Mesytec VME Data Acquisition
- *
- * Copyright (C) 2016-2023 mesytec GmbH & Co. KG <info@mesytec.com>
- *
- * Author: Florian Lüke <f.lueke@mesytec.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- */
-#include "mvme_session.h"
-#include "template_system.h"
-#include "vme_config_diff.h"
-#include "vme_config_util.h"
+#include <gtest/gtest.h>
 
-#include <QCoreApplication>
-#include <QDebug>
-#include <cassert>
-#include <iostream>
+#include "vme_config_diff.h"
 
 using namespace mesytec::mvme::vme_config;
 
@@ -118,7 +92,7 @@ std::unique_ptr<VMEConfig> create_test_config_2()
     return vmeConfig;
 }
 
-void test_basic_diff()
+TEST(VMEConfigDiff, BasicDiff)
 {
     std::cout << "=== Testing Basic Config Diff ===" << std::endl << std::endl;
 
@@ -129,11 +103,12 @@ void test_basic_diff()
 
     std::cout << "Has changes: " << (diff.hasChanges() ? "YES" : "NO") << std::endl;
     std::cout << diff.toCompactSummary().toStdString() << std::endl << std::endl;
-
     std::cout << diff.toText().toStdString() << std::endl;
+    ASSERT_TRUE(diff.hasChanges());
 }
 
-void test_no_changes()
+
+TEST(VMEConfigDiff, NoChanges)
 {
     std::cout << "=== Testing No Changes ===" << std::endl << std::endl;
 
@@ -144,81 +119,5 @@ void test_no_changes()
 
     std::cout << "Has changes: " << (diff.hasChanges() ? "YES" : "NO") << std::endl;
     std::cout << diff.toText().toStdString() << std::endl;
-    assert(!diff.hasChanges());
-}
-
-void test_file_diff(const QString &file1, const QString &file2)
-{
-    std::cout << "=== Diffing Config Files ===" << std::endl;
-    std::cout << "File A: " << file1.toStdString() << std::endl;
-    std::cout << "File B: " << file2.toStdString() << std::endl << std::endl;
-
-    auto [config1, error1] =
-        read_vme_config_from_file(file1, [](const QString &msg) { qDebug() << msg; });
-
-    if (!config1)
-    {
-        std::cerr << "Failed to load " << file1.toStdString() << std::endl;
-        if (!error1.isEmpty())
-            std::cerr << "Error: " << error1.toStdString() << std::endl;
-        return;
-    }
-
-    auto [config2, error2] =
-        read_vme_config_from_file(file2, [](const QString &msg) { qDebug() << msg; });
-
-    if (!config2)
-    {
-        std::cerr << "Failed to load " << file2.toStdString() << std::endl;
-        if (!error2.isEmpty())
-            std::cerr << "Error: " << error2.toStdString() << std::endl;
-        return;
-    }
-
-    auto diff = diff_vme_configs(config1.get(), config2.get());
-
-    std::cout << "Has changes: " << (diff.hasChanges() ? "YES" : "NO") << std::endl;
-    std::cout << diff.toCompactSummary().toStdString() << std::endl << std::endl;
-
-    if (diff.hasChanges())
-    {
-        std::cout << diff.toText().toStdString() << std::endl;
-
-        // Show statistics
-        auto added = diff.getAddedObjects();
-        auto removed = diff.getRemovedObjects();
-        auto modified = diff.getModifiedObjects();
-
-        std::cout << "\nStatistics:" << std::endl;
-        std::cout << "  Added objects:    " << added.size() << std::endl;
-        std::cout << "  Removed objects:  " << removed.size() << std::endl;
-        std::cout << "  Modified objects: " << modified.size() << std::endl;
-    }
-}
-
-int main(int argc, char *argv[])
-{
-    register_mvme_qt_metatypes();
-    QCoreApplication app(argc, argv);
-
-    if (argc == 3)
-    {
-        // Diff two files from command line
-        test_file_diff(argv[1], argv[2]);
-    }
-    else
-    {
-        // Run built-in tests
-        test_basic_diff();
-        std::cout << std::endl;
-        test_no_changes();
-
-        if (argc == 1)
-        {
-            std::cout << "\nUsage: " << argv[0] << " <config_file_1> <config_file_2>" << std::endl;
-            std::cout << "       Diffs two VME config files" << std::endl;
-        }
-    }
-
-    return 0;
+    ASSERT_TRUE(!diff.hasChanges());
 }

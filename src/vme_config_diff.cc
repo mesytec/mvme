@@ -318,12 +318,12 @@ QVector<const ConfigObject*> get_config_children(const ConfigObject* obj)
     else if (auto module = qobject_cast<const ModuleConfig*>(obj))
     {
         // Modules have init scripts, reset script, readout script
-        for (auto script : module->getInitScripts())
-            result.append(script);
         if (module->getResetScript())
             result.append(module->getResetScript());
         if (module->getReadoutScript())
             result.append(module->getReadoutScript());
+        for (auto script : module->getInitScripts())
+            result.append(script);
     }
 
     return result;
