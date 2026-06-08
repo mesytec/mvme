@@ -35,6 +35,10 @@
 namespace mesytec::mvme::vme_config
 {
 
+// VMEConfig tree diffing tools.
+// Limitations: does currently not compare the VMEScriptVariable comments, only
+// the variable values.
+
 // Represents the difference between two config objects at a single tree node
 struct LIBMVME_EXPORT DiffNode
 {
@@ -58,6 +62,7 @@ struct LIBMVME_EXPORT DiffNode
     // Script content changes (for VMEScriptConfig)
     QString oldScriptContent;
     QString newScriptContent;
+    QString scriptDiff; // Line-by-line diff of the script contents.
 
     // Child node differences
     std::vector<std::unique_ptr<DiffNode>> children;

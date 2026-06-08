@@ -24,6 +24,7 @@
 #include <QJsonObject>
 #include <QSet>
 #include <QTextStream>
+#include "dtl/dtl.hpp"
 
 namespace mesytec::mvme::vme_config
 {
@@ -133,6 +134,27 @@ void compare_script_properties(const VMEScriptConfig* a, const VMEScriptConfig* 
             QString("(%1 chars)").arg(a->getScriptContents().length()),
             QString("(%1 chars)").arg(b->getScriptContents().length())
         );
+
+        // Split into lines for line-by-line diff
+        auto splitLines = [](const QString& text) -> std::vector<std::string> {
+            QStringList lines = text.split('\n');
+            std::vector<std::string> result;
+            result.reserve(lines.size());
+            for (const auto& line : lines)
+                result.push_back(line.toStdString());
+            return result;
+        };
+
+        auto oldLines = splitLines(node->oldScriptContent);
+        auto newLines = splitLines(node->newScriptContent);
+
+        // Line-based diff (like git)
+        dtl::Diff<std::string, std::vector<std::string>> d(oldLines, newLines);
+        d.compose();             // construct an edit distance and LCS and SES
+        d.composeUnifiedHunks(); // construct a difference as Unified Format with SES.
+        std::ostringstream diffStream;
+        d.printUnifiedFormat(diffStream); // print a difference as Unified Format.
+        node->scriptDiff = QString::fromStdString(diffStream.str());
     }
 }
 
@@ -373,6 +395,13 @@ void node_to_text(const DiffNode* node, QTextStream& out, int indent, bool showU
             out << indentStr << "  " << it.key() << ": ";
             out << "\"" << it.value().first.toString() << "\" -> ";
             out << "\"" << it.value().second.toString() << "\"\n";
+        }
+
+        if (!node->scriptDiff.isEmpty())
+        {
+            out << indentStr << "  Script Diff:\n";
+            for (const auto& line : node->scriptDiff.split('\n'))
+                out << indentStr << "    " << line << "\n";
         }
     }
 

@@ -346,6 +346,7 @@ target_link_libraries(libmvme
     PRIVATE nlohmann-json
     PRIVATE qgvcore
     PRIVATE range-v3::range-v3
+    PRIVATE dtl
     PUBLIC ${QUAZIP_QT5}
     PUBLIC ${QWT_LIBRARY}
     PUBLIC bfg::lyra
