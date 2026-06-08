@@ -38,6 +38,7 @@
 #include "vme_controller.h"
 #include "vme_config_version.h"
 #include "vme_config_json_schema_updates.h"
+#include "mesytec-mvlc/util/pretty_function.h"
 
 using namespace vats;
 
@@ -420,6 +421,8 @@ ModuleConfig::ModuleConfig(QObject *parent)
     , m_resetScript(new VMEScriptConfig(this))
     , m_readoutScript(new VMEScriptConfig(this))
 {
+    m_resetScript->setObjectName("reset");
+    m_readoutScript->setObjectName("readout");
 }
 
 void ModuleConfig::setBaseAddress(uint32_t address)
