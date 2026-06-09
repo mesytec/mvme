@@ -105,18 +105,41 @@ std::unique_ptr<EventConfig> make_new_event_config(const VMEConfig *vmeConfig)
 {
     auto eventConfig = std::make_unique<EventConfig>();
 
-    u8 irq = get_next_free_irq(vmeConfig);
-    u8 mcst = get_next_mcst(vmeConfig);
+    u8 irq = vmeConfig ? get_next_free_irq(vmeConfig) : 1u;
+    u8 mcst = vmeConfig ? get_next_mcst(vmeConfig) : 0xbb;
 
     // If there's no free irq reuse the first valid one.
-    if (irq == 0) irq = vme::MinIRQ;;
+    if (irq == 0) irq = vme::MinIRQ;
 
-    eventConfig->setObjectName(QString("event%1").arg(vmeConfig->getEventConfigs().size()));
+    eventConfig->setObjectName(QString("event%1").arg(vmeConfig ? vmeConfig->getEventConfigs().size() : 0));
     eventConfig->triggerCondition = TriggerCondition::Interrupt;
     eventConfig->irqLevel = irq;
 
     auto vars = make_standard_event_variables(irq, mcst);
     eventConfig->setVariables(vars);
+
+    // Load the default event scripts for non-periodic events. These contain
+    // the 'readout cycle end' and 'daq start/stop' commands which write to
+    // the events mcst address. We only want this for non-periodic events,
+    // periodic ones usually should not write the 'readout_reset' register
+    // via mcst. Maybe find a better place for this code.
+    if (eventConfig->triggerCondition != TriggerCondition::Periodic
+        && eventConfig->triggerCondition != TriggerCondition::MvlcStackTimer)
+    {
+        auto templates = vats::read_templates().eventTemplates;
+
+        eventConfig->vmeScripts["daq_start"]->setScriptContents(
+            templates.daqStart.contents);
+
+        eventConfig->vmeScripts["daq_stop"]->setScriptContents(
+            templates.daqStop.contents);
+
+        eventConfig->vmeScripts["readout_start"]->setScriptContents(
+            templates.readoutCycleStart.contents);
+
+        eventConfig->vmeScripts["readout_end"]->setScriptContents(
+            templates.readoutCycleEnd.contents);
+    }
 
     return eventConfig;
 }

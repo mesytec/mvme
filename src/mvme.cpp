@@ -2155,28 +2155,19 @@ void MVMEMainWindow::runAddVMEEventDialog()
 
     if (result == QDialog::Accepted)
     {
-        // Load the default event scripts for non-periodic events. These contain
-        // the 'readout cycle end' and 'daq start/stop' commands which write to
-        // the events mcst address. We only want this for non-periodic events,
-        // periodic ones usually should not write the 'readout_reset' register
-        // via mcst. Maybe find a better place for this code.
-        if (eventConfig->triggerCondition != TriggerCondition::Periodic
-            && eventConfig->triggerCondition != TriggerCondition::MvlcStackTimer)
+        // For periodic events: empty the default 'readout_start',
+        // 'readout_end', 'daq_start' and 'daq_stop' scripts. These scripts deal
+        // with writes to the events MCST address, e.g. synchronous
+        // readout_reset of all modules in the event.  Periodic events usually
+        // should not do this as they are used to read out counters and other
+        // status info but are not used for the main readout.
+        if (eventConfig->triggerCondition == TriggerCondition::Periodic
+            || eventConfig->triggerCondition == TriggerCondition::MvlcStackTimer)
         {
-            auto logger = [this](const QString &msg) { m_d->m_context->logMessage(msg); };
-            VMEEventTemplates templates = read_templates(logger).eventTemplates;
-
-            eventConfig->vmeScripts["daq_start"]->setScriptContents(
-                templates.daqStart.contents);
-
-            eventConfig->vmeScripts["daq_stop"]->setScriptContents(
-                templates.daqStop.contents);
-
-            eventConfig->vmeScripts["readout_start"]->setScriptContents(
-                templates.readoutCycleStart.contents);
-
-            eventConfig->vmeScripts["readout_end"]->setScriptContents(
-                templates.readoutCycleEnd.contents);
+            eventConfig->vmeScripts["daq_start"]->setScriptContents({});
+            eventConfig->vmeScripts["daq_stop"]->setScriptContents({});
+            eventConfig->vmeScripts["readout_start"]->setScriptContents({});
+            eventConfig->vmeScripts["readout_end"]->setScriptContents({});
         }
 
         vmeConfig->addEventConfig(eventConfig.release());
