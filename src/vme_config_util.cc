@@ -141,6 +141,9 @@ std::unique_ptr<EventConfig> make_new_event_config(const VMEConfig *vmeConfig)
             templates.readoutCycleEnd.contents);
     }
 
+    // Set some default trigger options.
+    eventConfig->triggerOptions["IRQUseIACK"] = false;
+
     return eventConfig;
 }
 
