@@ -300,6 +300,7 @@ add_library(libmvme SHARED
     util/version_compare.cc
     util_zip.cc
     vme_analysis_common.cc
+    vme_config_diff_ui.cc
     vme_config.cc
     vme_config_json_schema_updates.cc
     vme_config_model_view.cc

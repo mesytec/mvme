@@ -56,6 +56,7 @@
 #include "util/qt_monospace_textedit.h"
 #include "vme_config.h"
 #include "vme_config_diff.h"
+#include "vme_config_diff_ui.h"
 #include "vme_config_scripts.h"
 #include "vme_config_ui.h"
 #include "vme_config_util.h"
@@ -1546,7 +1547,16 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
             menu.addAction(
                 QIcon(QSL(":/")), QSL("Compare with template"), [this, moduleConfig]
                 {
+
                     auto diff = vme_config::diff_module_against_template(moduleConfig);
+                    auto widget = std::make_unique<VMEConfigDiffWidget>();
+                    widget->setDiff(diff);
+                    widget->setWindowTitle("Diff: " + moduleConfig->objectName() + "vs Template");
+                    widget->setAttribute(Qt::WA_DeleteOnClose);
+                    widget->show();
+                    widget.release();
+
+                    #if 0
                     // Show in simple dialog:
                     auto *dialog = new QDialog(this);
                     dialog->setWindowTitle("Diff: " + moduleConfig->objectName() + " vs Template");
@@ -1558,6 +1568,17 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
 
                     l->addWidget(text.release());
                     dialog->show();
+
+                    auto model = std::make_unique<VMEConfigDiffItemModel>();
+                    model->setDiff(diff);
+
+                    auto view = std::make_unique<VMEConfigDiffTreeView>();
+                    view->setAttribute(Qt::WA_DeleteOnClose);
+                    model->setParent(view.get());
+                    view->setModel(model.release());
+                    view->show();
+                    view.release();
+                    #endif
                 });
         }
     }
