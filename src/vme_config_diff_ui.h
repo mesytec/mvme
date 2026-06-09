@@ -3,6 +3,7 @@
 
 #include "vme_config_diff.h"
 #include <QStandardItemModel>
+#include <QSyntaxHighlighter>
 #include <QTreeView>
 #include <QWidget>
 
@@ -56,6 +57,14 @@ class LIBMVME_EXPORT VMEConfigDiffWidget: public QWidget
     VMEConfigDiffItemModel *model_;
     VMEConfigDiffTreeView *treeView_;
     QTextEdit *textEdit_;
+};
+
+class DiffSyntaxHighlighter: public QSyntaxHighlighter
+{
+    using QSyntaxHighlighter::QSyntaxHighlighter;
+
+  protected:
+    void highlightBlock(const QString &text) override;
 };
 
 } // namespace mesytec::mvme::vme_config

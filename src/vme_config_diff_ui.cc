@@ -1,11 +1,11 @@
 #include "vme_config_diff_ui.h"
-#include <QStandardItem>
 #include <QBrush>
 #include <QColor>
+#include <QHeaderView>
 #include <QSplitter>
+#include <QStandardItem>
 #include <QTextEdit>
 #include <QVBoxLayout>
-#include <QHeaderView>
 
 namespace mesytec::mvme::vme_config
 {
@@ -32,11 +32,11 @@ QColor get_status_color(DiffNode::Status status)
     switch (status)
     {
     case DiffNode::Status::Added:
-        return QColor(144, 238, 144);    // Light green
+        return QColor(144, 238, 144); // Light green
     case DiffNode::Status::Removed:
-        return QColor(255, 182, 193);    // Light red
+        return QColor(255, 182, 193); // Light red
     case DiffNode::Status::Modified:
-        return QColor(255, 255, 153);    // Light yellow
+        return QColor(255, 255, 153); // Light yellow
     case DiffNode::Status::Unchanged:
         return QColor(Qt::white);
     }
@@ -77,22 +77,46 @@ QString get_changes_text(const DiffNode *node)
         {
             QString varName = key.mid(4);
             changes << QString("%1: %2 → %3")
-                .arg(varName)
-                .arg(values.first.toString())
-                .arg(values.second.toString());
+                           .arg(varName)
+                           .arg(values.first.toString())
+                           .arg(values.second.toString());
         }
         else if (key == "scriptContent")
         {
-            changes << QString("Script: %1 → %2")
-                .arg(values.first.toString())
-                .arg(values.second.toString());
+            // Count changed lines from the unified diff
+            int addedLines = 0;
+            int removedLines = 0;
+
+            if (!node->scriptDiff.isEmpty())
+            {
+                QStringList diffLines = node->scriptDiff.split('\n');
+                for (const QString &line: diffLines)
+                {
+                    if (line.startsWith('+') && !line.startsWith("+++"))
+                        addedLines++;
+                    else if (line.startsWith('-') && !line.startsWith("---"))
+                        removedLines++;
+                }
+            }
+
+            if (addedLines > 0 || removedLines > 0)
+            {
+                if (addedLines == removedLines)
+                    changes << QString("Script: %1 lines changed").arg(addedLines);
+                else
+                    changes << QString("Script: +%1/-%2 lines").arg(addedLines).arg(removedLines);
+            }
+            else
+            {
+                changes << "Script: modified";
+            }
         }
         else
         {
             changes << QString("%1: %2 → %3")
-                .arg(key)
-                .arg(values.first.toString())
-                .arg(values.second.toString());
+                           .arg(key)
+                           .arg(values.first.toString())
+                           .arg(values.second.toString());
         }
     }
 
@@ -153,7 +177,7 @@ void populate_model_recursive(QStandardItem *parentItem, const DiffNode *node)
     }
 
     // Recursively add children
-    for (const auto &child : node->children)
+    for (const auto &child: node->children)
     {
         populate_model_recursive(nameItem, child.get());
     }
@@ -171,7 +195,7 @@ void VMEConfigDiffItemModel::setDiff(const ConfigDiff &diff)
     // Store the diff (note: ConfigDiff is move-only, so we need to use const_cast
     // or change the API to take ownership)
     // For now, assuming we can copy the internal structure or store a reference
-    d->diff = std::move(const_cast<ConfigDiff&>(diff));
+    d->diff = std::move(const_cast<ConfigDiff &>(diff));
 
     // Populate the model from the diff tree
     if (const DiffNode *root = d->diff.getDiffTree())
@@ -195,7 +219,7 @@ void VMEConfigDiffItemModel::setDiff(const ConfigDiff &diff)
         appendRow({nameItem, statusItem, changesItem});
 
         // Add children recursively
-        for (const auto &child : root->children)
+        for (const auto &child: root->children)
         {
             populate_model_recursive(nameItem, child.get());
         }
@@ -204,10 +228,7 @@ void VMEConfigDiffItemModel::setDiff(const ConfigDiff &diff)
     endResetModel();
 }
 
-const ConfigDiff &VMEConfigDiffItemModel::getDiff() const
-{
-    return d->diff;
-}
+const ConfigDiff &VMEConfigDiffItemModel::getDiff() const { return d->diff; }
 
 // VMEConfigDiffWidget implementation
 
@@ -303,7 +324,7 @@ QString format_diff_text_recursive(const DiffNode *node, bool includeUnchanged =
     }
 
     // Format children
-    for (const auto &child : node->children)
+    for (const auto &child: node->children)
     {
         if (includeUnchanged || child->hasChanges())
         {
@@ -317,6 +338,41 @@ QString format_diff_text_recursive(const DiffNode *node, bool includeUnchanged =
 }
 
 } // anonymous namespace
+
+// DiffSyntaxHighlighter implementation
+
+void DiffSyntaxHighlighter::highlightBlock(const QString &text)
+{
+    QTextCharFormat format;
+
+    if (text.startsWith("+++") || text.startsWith("---"))
+    {
+        // File headers - bold cyan
+        format.setForeground(QColor(0, 139, 139));
+        format.setFontWeight(QFont::Bold);
+        setFormat(0, text.length(), format);
+    }
+    else if (text.startsWith("@@"))
+    {
+        // Hunk headers - cyan
+        format.setForeground(QColor(0, 139, 139));
+        setFormat(0, text.length(), format);
+    }
+    else if (text.startsWith('+'))
+    {
+        // Added lines - green
+        format.setForeground(QColor(34, 139, 34));
+        setFormat(0, text.length(), format);
+    }
+    else if (text.startsWith('-'))
+    {
+        // Removed lines - red
+        format.setForeground(QColor(178, 34, 34));
+        setFormat(0, text.length(), format);
+    }
+}
+
+// VMEConfigDiffWidget implementation
 
 VMEConfigDiffWidget::VMEConfigDiffWidget(QWidget *parent)
     : QWidget(parent)
@@ -334,6 +390,9 @@ VMEConfigDiffWidget::VMEConfigDiffWidget(QWidget *parent)
     textEdit_->setFontFamily("monospace");
     textEdit_->setLineWrapMode(QTextEdit::NoWrap);
 
+    // Apply diff syntax highlighting
+    new DiffSyntaxHighlighter(textEdit_->document());
+
     auto *splitter = new QSplitter(Qt::Horizontal, this);
     splitter->addWidget(treeView_);
     splitter->addWidget(textEdit_);
@@ -345,29 +404,30 @@ VMEConfigDiffWidget::VMEConfigDiffWidget(QWidget *parent)
     layout->addWidget(splitter);
 
     // Connect selection change to update diff text
-    connect(treeView_->selectionModel(), &QItemSelectionModel::currentChanged,
-            this, [this](const QModelIndex &current, const QModelIndex &)
-    {
-        if (!current.isValid())
-        {
-            textEdit_->clear();
-            return;
-        }
-
-        // Get the first column index (where we store the DiffNode pointer)
-        QModelIndex nameIndex = current.sibling(current.row(), 0);
-        QVariant data = model_->data(nameIndex, Qt::UserRole);
-
-        if (data.isValid())
-        {
-            const DiffNode *node = reinterpret_cast<const DiffNode*>(data.value<quintptr>());
-            if (node)
+    connect(treeView_->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex &current, const QModelIndex &)
             {
-                QString diffText = format_diff_text_recursive(node, false);
-                textEdit_->setPlainText(diffText);
-            }
-        }
-    });
+                if (!current.isValid())
+                {
+                    textEdit_->clear();
+                    return;
+                }
+
+                // Get the first column index (where we store the DiffNode pointer)
+                QModelIndex nameIndex = current.sibling(current.row(), 0);
+                QVariant data = model_->data(nameIndex, Qt::UserRole);
+
+                if (data.isValid())
+                {
+                    const DiffNode *node =
+                        reinterpret_cast<const DiffNode *>(data.value<quintptr>());
+                    if (node)
+                    {
+                        QString diffText = format_diff_text_recursive(node, false);
+                        textEdit_->setPlainText(diffText);
+                    }
+                }
+            });
 
     resize(1000, 800);
 }
@@ -377,6 +437,11 @@ void VMEConfigDiffWidget::setDiff(const ConfigDiff &diff)
     model_->setDiff(diff);
     treeView_->expandToDepth(1);
     textEdit_->clear();
+    auto colCount = model_->columnCount();
+    for (int col = 0; col < colCount; ++col)
+    {
+        treeView_->resizeColumnToContents(col);
+    }
 }
 
 } // namespace mesytec::mvme::vme_config
