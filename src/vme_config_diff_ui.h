@@ -20,7 +20,7 @@ class LIBMVME_EXPORT VMEConfigDiffItemModel: public QStandardItemModel
     explicit VMEConfigDiffItemModel(QObject *parent = nullptr);
     ~VMEConfigDiffItemModel() override;
 
-    void setDiff(const ConfigDiff &diff);
+    void setDiff(ConfigDiff &&diff);
     const ConfigDiff &getDiff() const;
 
   private:
@@ -51,7 +51,7 @@ class LIBMVME_EXPORT VMEConfigDiffWidget: public QWidget
     Q_OBJECT
   public:
     explicit VMEConfigDiffWidget(QWidget *parent = nullptr);
-    void setDiff(const ConfigDiff &diff);
+    void setDiff(ConfigDiff &&diff);
 
   private:
     VMEConfigDiffItemModel *model_;

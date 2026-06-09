@@ -348,13 +348,11 @@ void diff_children(const ConfigObject *a, const ConfigObject *b, DiffNode *paren
 
         // Compare reset scripts directly (match by role)
         auto resetDiff = diff_objects(moduleA->getResetScript(), moduleB->getResetScript());
-        if (resetDiff->hasChanges())
-            parent->children.push_back(std::move(resetDiff));
+        parent->children.push_back(std::move(resetDiff));
 
         // Compare readout scripts directly (match by role)
         auto readoutDiff = diff_objects(moduleA->getReadoutScript(), moduleB->getReadoutScript());
-        if (readoutDiff->hasChanges())
-            parent->children.push_back(std::move(readoutDiff));
+        parent->children.push_back(std::move(readoutDiff));
 
         // Compare init scripts by name or position
         auto initScriptsA = moduleA->getInitScripts();
@@ -392,8 +390,7 @@ void diff_children(const ConfigObject *a, const ConfigObject *b, DiffNode *paren
         for (const auto &name: allNames)
         {
             auto initDiff = diff_objects(namedA.value(name), namedB.value(name));
-            if (initDiff->hasChanges())
-                parent->children.push_back(std::move(initDiff));
+            parent->children.push_back(std::move(initDiff));
         }
 
         // Compare unnamed scripts by position
@@ -403,8 +400,7 @@ void diff_children(const ConfigObject *a, const ConfigObject *b, DiffNode *paren
             auto scriptA = i < unnamedA.size() ? unnamedA[i] : nullptr;
             auto scriptB = i < unnamedB.size() ? unnamedB[i] : nullptr;
             auto initDiff = diff_objects(scriptA, scriptB);
-            if (initDiff->hasChanges())
-                parent->children.push_back(std::move(initDiff));
+            parent->children.push_back(std::move(initDiff));
         }
 
         return;
@@ -430,10 +426,7 @@ void diff_children(const ConfigObject *a, const ConfigObject *b, DiffNode *paren
     for (const auto &id: allIds)
     {
         auto childDiff = diff_objects(aChildren.value(id), bChildren.value(id));
-
-        // Only include nodes that have changes or we want to show everything
-        if (childDiff->hasChanges())
-            parent->children.push_back(std::move(childDiff));
+        parent->children.push_back(std::move(childDiff));
     }
 }
 

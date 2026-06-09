@@ -36,8 +36,15 @@ namespace mesytec::mvme::vme_config
 {
 
 // VMEConfig tree diffing tools.
+//
 // Limitations: does currently not compare the VMEScriptVariable comments, only
 // the variable values.
+//
+// Important: pointers to the objects being diffed are stored in the DiffNode
+// structures. These objects have to outlive the DiffNodes! The root ConfigDiff
+// has a takeOwnership() method which can be used to transfer ownership of
+// ConfigObjects to the diff. This is currently used when comparing to the
+// template baseline.
 
 // Represents the difference between two config objects at a single tree node
 struct LIBMVME_EXPORT DiffNode

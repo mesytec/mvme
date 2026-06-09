@@ -185,17 +185,14 @@ void populate_model_recursive(QStandardItem *parentItem, const DiffNode *node)
 
 } // anonymous namespace
 
-void VMEConfigDiffItemModel::setDiff(const ConfigDiff &diff)
+void VMEConfigDiffItemModel::setDiff(ConfigDiff &&diff)
 {
     beginResetModel();
 
     clear();
     setHorizontalHeaderLabels({"Object", "Status", "Changes"});
 
-    // Store the diff (note: ConfigDiff is move-only, so we need to use const_cast
-    // or change the API to take ownership)
-    // For now, assuming we can copy the internal structure or store a reference
-    d->diff = std::move(const_cast<ConfigDiff &>(diff));
+    d->diff = std::move(diff);
 
     // Populate the model from the diff tree
     if (const DiffNode *root = d->diff.getDiffTree())
@@ -432,9 +429,9 @@ VMEConfigDiffWidget::VMEConfigDiffWidget(QWidget *parent)
     resize(1000, 800);
 }
 
-void VMEConfigDiffWidget::setDiff(const ConfigDiff &diff)
+void VMEConfigDiffWidget::setDiff(ConfigDiff &&diff)
 {
-    model_->setDiff(diff);
+    model_->setDiff(std::move(diff));
     treeView_->expandToDepth(1);
     textEdit_->clear();
     auto colCount = model_->columnCount();

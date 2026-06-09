@@ -1461,7 +1461,7 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
     // - Rename for scripts if they are under any of the global nodes.
     // - Rename for directories if they are under any of the global nodes.
     // - Recursive enable/disable of trees if they are under any of the global
-    //   nodes.  Note: disabling scripts under "manual" doesn't really make
+    //   nodes. Note: disabling scripts under "manual" doesn't really make
     //   sense but it makes the code quite a bit simpler especially as the case
     //   where disabled objects hierarchies are pasted under "manual" does not
     //   need special handling.
@@ -1550,35 +1550,11 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
 
                     auto diff = vme_config::diff_module_against_template(moduleConfig);
                     auto widget = std::make_unique<VMEConfigDiffWidget>();
-                    widget->setDiff(diff);
+                    widget->setDiff(std::move(diff));
                     widget->setWindowTitle("Diff: " + moduleConfig->objectName() + "vs Template");
                     widget->setAttribute(Qt::WA_DeleteOnClose);
                     widget->show();
                     widget.release();
-
-                    #if 0
-                    // Show in simple dialog:
-                    auto *dialog = new QDialog(this);
-                    dialog->setWindowTitle("Diff: " + moduleConfig->objectName() + " vs Template");
-                    auto l = new QVBoxLayout(dialog);
-
-                    auto text = mvme::util::make_monospace_plain_textedit();
-                    text->setPlainText(diff.toText());
-                    text->setReadOnly(true);
-
-                    l->addWidget(text.release());
-                    dialog->show();
-
-                    auto model = std::make_unique<VMEConfigDiffItemModel>();
-                    model->setDiff(diff);
-
-                    auto view = std::make_unique<VMEConfigDiffTreeView>();
-                    view->setAttribute(Qt::WA_DeleteOnClose);
-                    model->setParent(view.get());
-                    view->setModel(model.release());
-                    view->show();
-                    view.release();
-                    #endif
                 });
         }
     }
