@@ -186,11 +186,47 @@ void compare_event_properties(const EventConfig *a, const EventConfig *b, DiffNo
         node->propertyChanges["triggerCondition"] =
             qMakePair(static_cast<int>(a->triggerCondition), static_cast<int>(b->triggerCondition));
 
+    if (a->triggerOptions != b->triggerOptions)
+    {
+        // Store copies of the triggerOptions maps.
+        node->propertyChanges["triggerOptions"] = qMakePair(a->triggerOptions, b->triggerOptions);
+    }
+
     if (a->irqLevel != b->irqLevel)
         node->propertyChanges["irqLevel"] = qMakePair(a->irqLevel, b->irqLevel);
 
     if (a->irqVector != b->irqVector)
         node->propertyChanges["irqVector"] = qMakePair(a->irqVector, b->irqVector);
+
+    // vmusb
+    if (a->scalerReadoutPeriod != b->scalerReadoutPeriod)
+        node->propertyChanges["scalerReadoutPeriod"] = qMakePair(a->scalerReadoutPeriod, b->scalerReadoutPeriod);
+
+    if (a->scalerReadoutFrequency != b->scalerReadoutFrequency)
+        node->propertyChanges["scalerReadoutFrequency"] = qMakePair(a->scalerReadoutFrequency, b->scalerReadoutFrequency);
+
+    // child vme init scripts sorted and compared by key
+    const auto allKeysSet = a->vmeScripts.keys().toSet().unite(b->vmeScripts.keys().toSet());
+    auto allKeys = allKeysSet.toList();
+    std::sort(allKeys.begin(), allKeys.end());
+
+    for (const auto &key: allKeys)
+    {
+        auto scriptA = a->vmeScripts.value(key, nullptr);
+        auto scriptB = b->vmeScripts.value(key, nullptr);
+
+        if (scriptA && !scriptB)
+            node->propertyChanges[QString("vmeScript:%1").arg(key)] = qMakePair(QString("exists"), QString("removed"));
+        else if (!scriptA && scriptB)
+            node->propertyChanges[QString("vmeScript:%1").arg(key)] = qMakePair(QString("added"), QString("exists"));
+        else if (scriptA && scriptB)
+        {
+            // Compare the scripts and store any differences in a child node
+            auto childNode = diff_objects(scriptA, scriptB);
+            if (childNode->hasChanges())
+                node->children.push_back(std::move(childNode));
+        }
+    }
 }
 
 // Compare VMEConfig specific properties
@@ -233,55 +269,41 @@ std::unique_ptr<DiffNode> diff_objects(const ConfigObject *a, const ConfigObject
     node->original = a;
     node->modified = b;
 
-    // For VMEScriptConfig objects, we don't care about ID differences since they're
-    // matched by role/name when part of a ModuleConfig
-    bool isScript = qobject_cast<const VMEScriptConfig *>(a) && qobject_cast<const VMEScriptConfig *>(b);
+    // Same object (or script matched by role/name) - compare properties
+    node->status = DiffNode::Status::Unchanged;
 
-    if (!isScript && a->getId() != b->getId())
+    // Compare base properties
+    compare_base_properties(a, b, node.get());
+
+    // Compare type-specific properties
+    if (auto scriptA = qobject_cast<const VMEScriptConfig *>(a))
     {
-        // Different objects at same position - treat as removed + added
-        // For now, we'll call this "modified" at the structural level
+        auto scriptB = qobject_cast<const VMEScriptConfig *>(b);
+        if (scriptB)
+            compare_script_properties(scriptA, scriptB, node.get());
+    }
+    else if (auto moduleA = qobject_cast<const ModuleConfig *>(a))
+    {
+        auto moduleB = qobject_cast<const ModuleConfig *>(b);
+        if (moduleB)
+            compare_module_properties(moduleA, moduleB, node.get());
+    }
+    else if (auto eventA = qobject_cast<const EventConfig *>(a))
+    {
+        auto eventB = qobject_cast<const EventConfig *>(b);
+        if (eventB)
+            compare_event_properties(eventA, eventB, node.get());
+    }
+    else if (auto vmeA = qobject_cast<const VMEConfig *>(a))
+    {
+        auto vmeB = qobject_cast<const VMEConfig *>(b);
+        if (vmeB)
+            compare_vmeconfig_properties(vmeA, vmeB, node.get());
+    }
+
+    // If we found any property changes, mark as modified
+    if (!node->propertyChanges.isEmpty())
         node->status = DiffNode::Status::Modified;
-        node->propertyChanges["id"] = qMakePair(a->getId().toString(), b->getId().toString());
-    }
-    else
-    {
-        // Same object (or script matched by role/name) - compare properties
-        node->status = DiffNode::Status::Unchanged;
-
-        // Compare base properties
-        compare_base_properties(a, b, node.get());
-
-        // Compare type-specific properties
-        if (auto scriptA = qobject_cast<const VMEScriptConfig *>(a))
-        {
-            auto scriptB = qobject_cast<const VMEScriptConfig *>(b);
-            if (scriptB)
-                compare_script_properties(scriptA, scriptB, node.get());
-        }
-        else if (auto moduleA = qobject_cast<const ModuleConfig *>(a))
-        {
-            auto moduleB = qobject_cast<const ModuleConfig *>(b);
-            if (moduleB)
-                compare_module_properties(moduleA, moduleB, node.get());
-        }
-        else if (auto eventA = qobject_cast<const EventConfig *>(a))
-        {
-            auto eventB = qobject_cast<const EventConfig *>(b);
-            if (eventB)
-                compare_event_properties(eventA, eventB, node.get());
-        }
-        else if (auto vmeA = qobject_cast<const VMEConfig *>(a))
-        {
-            auto vmeB = qobject_cast<const VMEConfig *>(b);
-            if (vmeB)
-                compare_vmeconfig_properties(vmeA, vmeB, node.get());
-        }
-
-        // If we found any property changes, mark as modified
-        if (!node->propertyChanges.isEmpty())
-            node->status = DiffNode::Status::Modified;
-    }
 
     // Recursively diff children
     diff_children(a, b, node.get());
@@ -723,15 +745,8 @@ ConfigDiff diff_module_against_template(const ModuleConfig *mod)
 
 ConfigDiff diff_event_against_template(const EventConfig *event)
 {
-    // defaults used in mvme. not DRY but good enough for now.
-    const u8 irq = 1;
-    const u8 mcst = 0xbb;
-    auto templateEvent = std::make_unique<EventConfig>();
-    templateEvent->triggerCondition = TriggerCondition::Interrupt;
-    templateEvent->irqLevel = irq;
-    auto vars = vme_config::make_standard_event_variables(irq, mcst);
-    templateEvent->setVariables(vars);
-    auto ret = diff_configs(event, templateEvent.get());
+    auto templateEvent = vme_config::make_new_event_config();
+    auto ret = diff_configs(templateEvent.get(), event);
     ret.takeOwnership(std::move(templateEvent));
     return ret;
 }

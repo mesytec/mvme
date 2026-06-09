@@ -1327,6 +1327,19 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
                        [this, eventConfig]
                        { saveEventToFile(eventConfig); });
 
+        menu.addAction(
+            QIcon(QSL(":/")), QSL("Compare with template"), [this, eventConfig]
+            {
+                    auto diff = vme_config::diff_event_against_template(eventConfig);
+                    auto widget = std::make_unique<VMEConfigDiffWidget>();
+                    widget->setDiff(std::move(diff));
+                    widget->setWindowTitle("Diff: " + eventConfig->objectName() + " vs Template");
+                    widget->setAttribute(Qt::WA_DeleteOnClose);
+                    widget->show();
+                    add_widget_close_action(widget.get());
+                    widget.release();
+            });
+
         menu.addSeparator();
 
         action = menu.addAction(QIcon(QSL(":/vme_module.png")), QSL("Add Module"),
@@ -1554,6 +1567,7 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
                     widget->setWindowTitle("Diff: " + moduleConfig->objectName() + "vs Template");
                     widget->setAttribute(Qt::WA_DeleteOnClose);
                     widget->show();
+                    add_widget_close_action(widget.get());
                     widget.release();
                 });
         }

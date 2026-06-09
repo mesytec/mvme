@@ -27,6 +27,65 @@ VMEConfigDiffItemModel::~VMEConfigDiffItemModel() = default;
 namespace
 {
 
+QString format_variant_value(const QVariant &value)
+{
+    if (value.userType() == QMetaType::QVariantMap)
+    {
+        QVariantMap map = value.toMap();
+        if (map.isEmpty())
+            return "{}";
+
+        QStringList items;
+        for (auto it = map.begin(); it != map.end(); ++it)
+        {
+            items << QString("%1: %2").arg(it.key(), it.value().toString());
+        }
+        return QString("{ %1 }").arg(items.join(", "));
+    }
+    return value.toString();
+}
+
+QString format_variant_map_diff(const QVariantMap &oldMap, const QVariantMap &newMap)
+{
+    QString result;
+    QTextStream out(&result);
+
+    QSet<QString> allKeys;
+    for (auto it = oldMap.begin(); it != oldMap.end(); ++it)
+        allKeys.insert(it.key());
+    for (auto it = newMap.begin(); it != newMap.end(); ++it)
+        allKeys.insert(it.key());
+
+    QStringList sortedKeys = allKeys.values();
+    std::sort(sortedKeys.begin(), sortedKeys.end());
+
+    for (const QString &key: sortedKeys)
+    {
+        bool inOld = oldMap.contains(key);
+        bool inNew = newMap.contains(key);
+
+        if (inOld && !inNew)
+        {
+            // Removed key
+            out << "    - " << key << ": " << oldMap[key].toString() << "\n";
+        }
+        else if (!inOld && inNew)
+        {
+            // Added key
+            out << "    + " << key << ": " << newMap[key].toString() << "\n";
+        }
+        else if (oldMap[key] != newMap[key])
+        {
+            // Modified key
+            out << "    ~ " << key << ":\n";
+            out << "      - " << oldMap[key].toString() << "\n";
+            out << "      + " << newMap[key].toString() << "\n";
+        }
+    }
+
+    return result;
+}
+
 QColor get_status_color(DiffNode::Status status)
 {
     switch (status)
@@ -113,10 +172,20 @@ QString get_changes_text(const DiffNode *node)
         }
         else
         {
-            changes << QString("%1: %2 → %3")
-                           .arg(key)
-                           .arg(values.first.toString())
-                           .arg(values.second.toString());
+            //// Check if both values are QVariantMaps for a summary
+            //if (values.first.userType() == QMetaType::QVariantMap &&
+            //    values.second.userType() == QMetaType::QVariantMap)
+            //{
+            //    QVariantMap oldMap = values.first.toMap();
+            //    QVariantMap newMap = values.second.toMap();
+
+            //    changes << format_variant_map_diff(oldMap, newMap);
+            //}
+            //else
+            {
+                // For simple types, just show the property name
+                changes << key;
+            }
         }
     }
 
@@ -285,8 +354,20 @@ QString format_diff_text(const DiffNode *node)
             else
             {
                 out << "  " << key << ":\n";
-                out << "    - " << values.first.toString() << "\n";
-                out << "    + " << values.second.toString() << "\n";
+
+                // Check if both values are QVariantMaps
+                if (values.first.userType() == QMetaType::QVariantMap &&
+                    values.second.userType() == QMetaType::QVariantMap)
+                {
+                    QVariantMap oldMap = values.first.toMap();
+                    QVariantMap newMap = values.second.toMap();
+                    out << format_variant_map_diff(oldMap, newMap);
+                }
+                else
+                {
+                    out << "    - " << format_variant_value(values.first) << "\n";
+                    out << "    + " << format_variant_value(values.second) << "\n";
+                }
             }
         }
         out << "\n";
