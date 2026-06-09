@@ -129,6 +129,7 @@ public:
     // Set the root diff node (used by diff_configs)
     void setDiffRoot(std::unique_ptr<DiffNode> root);
 
+    // Take ownership of a ConfigObject (used for template baseline diffing)
     void takeOwnership(std::unique_ptr<ConfigObject> &&obj)
     {
         m_ownedObjects.push_back(std::move(obj));

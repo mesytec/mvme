@@ -53,6 +53,7 @@
 #include "util/qt_font.h"
 #include "util/qt_fs.h"
 #include "util/qt_gui_io.h"
+#include "util/qt_monospace_textedit.h"
 #include "vme_config.h"
 #include "vme_config_diff.h"
 #include "vme_config_scripts.h"
@@ -1550,10 +1551,12 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
                     auto *dialog = new QDialog(this);
                     dialog->setWindowTitle("Diff: " + moduleConfig->objectName() + " vs Template");
                     auto l = new QVBoxLayout(dialog);
-                    auto text = new QTextEdit();
-                    l->addWidget(text);
+
+                    auto text = mvme::util::make_monospace_plain_textedit();
                     text->setPlainText(diff.toText());
                     text->setReadOnly(true);
+
+                    l->addWidget(text.release());
                     dialog->show();
                 });
         }

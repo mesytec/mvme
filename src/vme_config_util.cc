@@ -563,4 +563,56 @@ std::pair<std::unique_ptr<VMEConfig>, std::error_code> LIBMVME_EXPORT read_vme_c
     return read_vme_config_from_data(qbytes);
 }
 
+std::unique_ptr<ModuleConfig> make_module_config(const QString &moduleTypeName)
+{
+    auto ret = std::make_unique<ModuleConfig>();
+
+    auto opt_mm =
+        vats::get_module_meta_by_typename(vats::read_templates(), moduleTypeName);
+    ret->setModuleMeta(opt_mm ? *opt_mm : vats::VMEModuleMeta());
+
+    auto mm = ret->getModuleMeta();
+
+    if (!mm.templateFile.isEmpty())
+    {
+        // New style template from a single json file.
+        mvme::vme_config::load_moduleconfig_from_modulejson(*ret, mm.moduleJson);
+    }
+    else if (!mm.templatePath.isEmpty())
+    {
+        // Old style template from multiple .vme files
+        if (auto rdoScript = ret->getReadoutScript())
+        {
+            if (rdoScript->objectName().isEmpty())
+                rdoScript->setObjectName(mm.templates.readout.name);
+            if (rdoScript->getScriptContents().isEmpty())
+                rdoScript->setScriptContents(mm.templates.readout.contents);
+        }
+
+        if (auto resetScript = ret->getResetScript())
+        {
+            if (resetScript->objectName().isEmpty())
+                resetScript->setObjectName(mm.templates.reset.name);
+            if (resetScript->getScriptContents().isEmpty())
+                resetScript->setScriptContents(mm.templates.reset.contents);
+        }
+
+        if (ret->getInitScripts().isEmpty())
+        {
+            for (const auto &vmeTemplate: mm.templates.init)
+            {
+                ret->addInitScript(
+                    new VMEScriptConfig(vmeTemplate.name, vmeTemplate.contents));
+            }
+        }
+    }
+
+    // Make sure there's at least one init script present.
+    if (ret->getInitScripts().isEmpty())
+    {
+        ret->addInitScript(new VMEScriptConfig("Module Init", QString()));
+    }
+
+    return ret;
+}
 }

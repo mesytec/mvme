@@ -421,8 +421,6 @@ ModuleConfig::ModuleConfig(QObject *parent)
     , m_resetScript(new VMEScriptConfig(this))
     , m_readoutScript(new VMEScriptConfig(this))
 {
-    m_resetScript->setObjectName("reset");
-    m_readoutScript->setObjectName("readout");
 }
 
 void ModuleConfig::setBaseAddress(uint32_t address)

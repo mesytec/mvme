@@ -163,6 +163,10 @@ std::pair<std::unique_ptr<VMEConfig>, std::error_code> LIBMVME_EXPORT read_vme_c
     const QByteArray &data);
 std::pair<std::unique_ptr<VMEConfig>, std::error_code> LIBMVME_EXPORT read_vme_config_from_data(
     const std::vector<u8> &data);
+
+// Factory function for creating a new ModuleConfig instance. Handles meta info and template instantiation.
+std::unique_ptr<ModuleConfig> LIBMVME_EXPORT make_module_config(const QString &moduleTypeName);
+
 }
 
 #endif /* __MVME_VME_CONFIG_UTIL_H__ */

@@ -20,12 +20,12 @@
  */
 #include "vme_config_diff.h"
 
+#include "dtl/dtl.hpp"
+#include "vme_config_util.h"
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSet>
 #include <QTextStream>
-#include "dtl/dtl.hpp"
-#include "vme_config_util.h"
 
 namespace mesytec::mvme::vme_config
 {
@@ -37,10 +37,14 @@ QString status_to_string(DiffNode::Status status)
 {
     switch (status)
     {
-        case DiffNode::Status::Unchanged: return "unchanged";
-        case DiffNode::Status::Added:     return "added";
-        case DiffNode::Status::Removed:   return "removed";
-        case DiffNode::Status::Modified:  return "modified";
+    case DiffNode::Status::Unchanged:
+        return "unchanged";
+    case DiffNode::Status::Added:
+        return "added";
+    case DiffNode::Status::Removed:
+        return "removed";
+    case DiffNode::Status::Modified:
+        return "modified";
     }
     return "unknown";
 }
@@ -49,16 +53,20 @@ QString status_to_symbol(DiffNode::Status status)
 {
     switch (status)
     {
-        case DiffNode::Status::Unchanged: return " ";
-        case DiffNode::Status::Added:     return "+";
-        case DiffNode::Status::Removed:   return "-";
-        case DiffNode::Status::Modified:  return "M";
+    case DiffNode::Status::Unchanged:
+        return " ";
+    case DiffNode::Status::Added:
+        return "+";
+    case DiffNode::Status::Removed:
+        return "-";
+    case DiffNode::Status::Modified:
+        return "M";
     }
     return "?";
 }
 
 // Helper to compare two symbol tables
-bool compare_variables(const vme_script::SymbolTable& a, const vme_script::SymbolTable& b)
+bool compare_variables(const vme_script::SymbolTable &a, const vme_script::SymbolTable &b)
 {
     if (a.size() != b.size())
         return false;
@@ -76,9 +84,8 @@ bool compare_variables(const vme_script::SymbolTable& a, const vme_script::Symbo
 }
 
 // Get variable differences
-QMap<QString, QPair<QString, QString>> get_variable_differences(
-    const vme_script::SymbolTable& a,
-    const vme_script::SymbolTable& b)
+QMap<QString, QPair<QString, QString>> get_variable_differences(const vme_script::SymbolTable &a,
+                                                                const vme_script::SymbolTable &b)
 {
     QMap<QString, QPair<QString, QString>> diffs;
 
@@ -88,7 +95,7 @@ QMap<QString, QPair<QString, QString>> get_variable_differences(
     for (auto it = b.symbols.begin(); it != b.symbols.end(); ++it)
         allKeys.insert(it.key());
 
-    for (const auto& key : allKeys)
+    for (const auto &key: allKeys)
     {
         QString oldValue = a.contains(key) ? a[key].value : QString();
         QString newValue = b.contains(key) ? b[key].value : QString();
@@ -101,11 +108,11 @@ QMap<QString, QPair<QString, QString>> get_variable_differences(
 }
 
 // Forward declarations for recursive diffing
-std::unique_ptr<DiffNode> diff_objects(const ConfigObject* a, const ConfigObject* b);
-void diff_children(const ConfigObject* a, const ConfigObject* b, DiffNode* parent);
+std::unique_ptr<DiffNode> diff_objects(const ConfigObject *a, const ConfigObject *b);
+void diff_children(const ConfigObject *a, const ConfigObject *b, DiffNode *parent);
 
 // Compare base ConfigObject properties
-void compare_base_properties(const ConfigObject* a, const ConfigObject* b, DiffNode* node)
+void compare_base_properties(const ConfigObject *a, const ConfigObject *b, DiffNode *node)
 {
     if (a->objectName() != b->objectName())
         node->propertyChanges["name"] = qMakePair(a->objectName(), b->objectName());
@@ -125,23 +132,23 @@ void compare_base_properties(const ConfigObject* a, const ConfigObject* b, DiffN
 }
 
 // Compare VMEScriptConfig specific properties
-void compare_script_properties(const VMEScriptConfig* a, const VMEScriptConfig* b, DiffNode* node)
+void compare_script_properties(const VMEScriptConfig *a, const VMEScriptConfig *b, DiffNode *node)
 {
     if (a->getScriptContents() != b->getScriptContents())
     {
         node->oldScriptContent = a->getScriptContents();
         node->newScriptContent = b->getScriptContents();
-        node->propertyChanges["scriptContent"] = qMakePair(
-            QString("(%1 chars)").arg(a->getScriptContents().length()),
-            QString("(%1 chars)").arg(b->getScriptContents().length())
-        );
+        node->propertyChanges["scriptContent"] =
+            qMakePair(QString("(%1 chars)").arg(a->getScriptContents().length()),
+                      QString("(%1 chars)").arg(b->getScriptContents().length()));
 
         // Split into lines for line-by-line diff
-        auto splitLines = [](const QString& text) -> std::vector<std::string> {
+        auto splitLines = [](const QString &text) -> std::vector<std::string>
+        {
             QStringList lines = text.split('\n');
             std::vector<std::string> result;
             result.reserve(lines.size());
-            for (const auto& line : lines)
+            for (const auto &line: lines)
                 result.push_back(line.toStdString());
             return result;
         };
@@ -160,29 +167,24 @@ void compare_script_properties(const VMEScriptConfig* a, const VMEScriptConfig* 
 }
 
 // Compare ModuleConfig specific properties
-void compare_module_properties(const ModuleConfig* a, const ModuleConfig* b, DiffNode* node)
+void compare_module_properties(const ModuleConfig *a, const ModuleConfig *b, DiffNode *node)
 {
     if (a->getBaseAddress() != b->getBaseAddress())
-        node->propertyChanges["baseAddress"] = qMakePair(
-            QString("0x%1").arg(a->getBaseAddress(), 8, 16, QChar('0')),
-            QString("0x%1").arg(b->getBaseAddress(), 8, 16, QChar('0'))
-        );
+        node->propertyChanges["baseAddress"] =
+            qMakePair(QString("0x%1").arg(a->getBaseAddress(), 8, 16, QChar('0')),
+                      QString("0x%1").arg(b->getBaseAddress(), 8, 16, QChar('0')));
 
     if (a->getModuleMeta().typeName != b->getModuleMeta().typeName)
-        node->propertyChanges["moduleType"] = qMakePair(
-            a->getModuleMeta().typeName,
-            b->getModuleMeta().typeName
-        );
+        node->propertyChanges["moduleType"] =
+            qMakePair(a->getModuleMeta().typeName, b->getModuleMeta().typeName);
 }
 
 // Compare EventConfig specific properties
-void compare_event_properties(const EventConfig* a, const EventConfig* b, DiffNode* node)
+void compare_event_properties(const EventConfig *a, const EventConfig *b, DiffNode *node)
 {
     if (a->triggerCondition != b->triggerCondition)
-        node->propertyChanges["triggerCondition"] = qMakePair(
-            static_cast<int>(a->triggerCondition),
-            static_cast<int>(b->triggerCondition)
-        );
+        node->propertyChanges["triggerCondition"] =
+            qMakePair(static_cast<int>(a->triggerCondition), static_cast<int>(b->triggerCondition));
 
     if (a->irqLevel != b->irqLevel)
         node->propertyChanges["irqLevel"] = qMakePair(a->irqLevel, b->irqLevel);
@@ -192,18 +194,18 @@ void compare_event_properties(const EventConfig* a, const EventConfig* b, DiffNo
 }
 
 // Compare VMEConfig specific properties
-void compare_vmeconfig_properties(const VMEConfig* a, const VMEConfig* b, DiffNode* node)
+void compare_vmeconfig_properties(const VMEConfig *a, const VMEConfig *b, DiffNode *node)
 {
     if (a->getControllerType() != b->getControllerType())
         node->propertyChanges["controllerType"] = qMakePair(
-            static_cast<int>(a->getControllerType()),
-            static_cast<int>(b->getControllerType())
-        );
+            static_cast<int>(a->getControllerType()), static_cast<int>(b->getControllerType()));
 }
 
 // Main object comparison function
-std::unique_ptr<DiffNode> diff_objects(const ConfigObject* a, const ConfigObject* b)
+std::unique_ptr<DiffNode> diff_objects(const ConfigObject *a, const ConfigObject *b)
 {
+    qDebug() << PRETTY_FUNCTION << "Comparing" << a << "to" << b;
+
     auto node = std::make_unique<DiffNode>();
 
     // Handle null cases
@@ -231,7 +233,11 @@ std::unique_ptr<DiffNode> diff_objects(const ConfigObject* a, const ConfigObject
     node->original = a;
     node->modified = b;
 
-    if (a->getId() != b->getId())
+    // For VMEScriptConfig objects, we don't care about ID differences since they're
+    // matched by role/name when part of a ModuleConfig
+    bool isScript = qobject_cast<const VMEScriptConfig *>(a) && qobject_cast<const VMEScriptConfig *>(b);
+
+    if (!isScript && a->getId() != b->getId())
     {
         // Different objects at same position - treat as removed + added
         // For now, we'll call this "modified" at the structural level
@@ -240,34 +246,34 @@ std::unique_ptr<DiffNode> diff_objects(const ConfigObject* a, const ConfigObject
     }
     else
     {
-        // Same object - compare properties
+        // Same object (or script matched by role/name) - compare properties
         node->status = DiffNode::Status::Unchanged;
 
         // Compare base properties
         compare_base_properties(a, b, node.get());
 
         // Compare type-specific properties
-        if (auto scriptA = qobject_cast<const VMEScriptConfig*>(a))
+        if (auto scriptA = qobject_cast<const VMEScriptConfig *>(a))
         {
-            auto scriptB = qobject_cast<const VMEScriptConfig*>(b);
+            auto scriptB = qobject_cast<const VMEScriptConfig *>(b);
             if (scriptB)
                 compare_script_properties(scriptA, scriptB, node.get());
         }
-        else if (auto moduleA = qobject_cast<const ModuleConfig*>(a))
+        else if (auto moduleA = qobject_cast<const ModuleConfig *>(a))
         {
-            auto moduleB = qobject_cast<const ModuleConfig*>(b);
+            auto moduleB = qobject_cast<const ModuleConfig *>(b);
             if (moduleB)
                 compare_module_properties(moduleA, moduleB, node.get());
         }
-        else if (auto eventA = qobject_cast<const EventConfig*>(a))
+        else if (auto eventA = qobject_cast<const EventConfig *>(a))
         {
-            auto eventB = qobject_cast<const EventConfig*>(b);
+            auto eventB = qobject_cast<const EventConfig *>(b);
             if (eventB)
                 compare_event_properties(eventA, eventB, node.get());
         }
-        else if (auto vmeA = qobject_cast<const VMEConfig*>(a))
+        else if (auto vmeA = qobject_cast<const VMEConfig *>(a))
         {
-            auto vmeB = qobject_cast<const VMEConfig*>(b);
+            auto vmeB = qobject_cast<const VMEConfig *>(b);
             if (vmeB)
                 compare_vmeconfig_properties(vmeA, vmeB, node.get());
         }
@@ -283,7 +289,7 @@ std::unique_ptr<DiffNode> diff_objects(const ConfigObject* a, const ConfigObject
     // If this node has no changes but children do, mark as modified
     if (node->status == DiffNode::Status::Unchanged && !node->children.empty())
     {
-        for (const auto& child : node->children)
+        for (const auto &child: node->children)
         {
             if (child->hasChanges())
             {
@@ -297,33 +303,33 @@ std::unique_ptr<DiffNode> diff_objects(const ConfigObject* a, const ConfigObject
 }
 
 // Helper to get ConfigObject children from various container types
-QVector<const ConfigObject*> get_config_children(const ConfigObject* obj)
+QVector<const ConfigObject *> get_config_children(const ConfigObject *obj)
 {
-    QVector<const ConfigObject*> result;
+    QVector<const ConfigObject *> result;
 
-    if (auto container = qobject_cast<const ContainerObject*>(obj))
+    if (auto container = qobject_cast<const ContainerObject *>(obj))
     {
-        for (auto child : container->getChildren())
+        for (auto child: container->getChildren())
             result.append(child);
     }
-    else if (auto event = qobject_cast<const EventConfig*>(obj))
+    else if (auto event = qobject_cast<const EventConfig *>(obj))
     {
-        for (auto module : event->getModuleConfigs())
+        for (auto module: event->getModuleConfigs())
             result.append(module);
     }
-    else if (auto vme = qobject_cast<const VMEConfig*>(obj))
+    else if (auto vme = qobject_cast<const VMEConfig *>(obj))
     {
-        for (auto event : vme->getEventConfigs())
+        for (auto event: vme->getEventConfigs())
             result.append(event);
     }
-    else if (auto module = qobject_cast<const ModuleConfig*>(obj))
+    else if (auto module = qobject_cast<const ModuleConfig *>(obj))
     {
         // Modules have init scripts, reset script, readout script
         if (module->getResetScript())
             result.append(module->getResetScript());
         if (module->getReadoutScript())
             result.append(module->getReadoutScript());
-        for (auto script : module->getInitScripts())
+        for (auto script: module->getInitScripts())
             result.append(script);
     }
 
@@ -331,26 +337,97 @@ QVector<const ConfigObject*> get_config_children(const ConfigObject* obj)
 }
 
 // Diff children of two objects
-void diff_children(const ConfigObject* a, const ConfigObject* b, DiffNode* parent)
+void diff_children(const ConfigObject *a, const ConfigObject *b, DiffNode *parent)
 {
-    // Build maps by ID for efficient matching
-    QMap<QUuid, const ConfigObject*> aChildren, bChildren;
+    // Special handling for ModuleConfig: compare scripts by role/name, not by ID
+    if (auto moduleA = qobject_cast<const ModuleConfig *>(a))
+    {
+        auto moduleB = qobject_cast<const ModuleConfig *>(b);
+        if (!moduleB)
+            return;
 
-    for (auto child : get_config_children(a))
+        // Compare reset scripts directly (match by role)
+        auto resetDiff = diff_objects(moduleA->getResetScript(), moduleB->getResetScript());
+        if (resetDiff->hasChanges())
+            parent->children.push_back(std::move(resetDiff));
+
+        // Compare readout scripts directly (match by role)
+        auto readoutDiff = diff_objects(moduleA->getReadoutScript(), moduleB->getReadoutScript());
+        if (readoutDiff->hasChanges())
+            parent->children.push_back(std::move(readoutDiff));
+
+        // Compare init scripts by name or position
+        auto initScriptsA = moduleA->getInitScripts();
+        auto initScriptsB = moduleB->getInitScripts();
+
+        // Separate named and unnamed scripts, maintaining order
+        QVector<VMEScriptConfig *> unnamedA, unnamedB;
+        QMap<QString, VMEScriptConfig *> namedA, namedB;
+
+        for (auto script: initScriptsA)
+        {
+            QString name = script->objectName();
+            if (name.isEmpty())
+                unnamedA.append(script);
+            else
+                namedA[name] = script;
+        }
+
+        for (auto script: initScriptsB)
+        {
+            QString name = script->objectName();
+            if (name.isEmpty())
+                unnamedB.append(script);
+            else
+                namedB[name] = script;
+        }
+
+        // Compare named scripts by name
+        QSet<QString> allNames;
+        for (const auto &name: namedA.keys())
+            allNames.insert(name);
+        for (const auto &name: namedB.keys())
+            allNames.insert(name);
+
+        for (const auto &name: allNames)
+        {
+            auto initDiff = diff_objects(namedA.value(name), namedB.value(name));
+            if (initDiff->hasChanges())
+                parent->children.push_back(std::move(initDiff));
+        }
+
+        // Compare unnamed scripts by position
+        int maxUnnamed = qMax(unnamedA.size(), unnamedB.size());
+        for (int i = 0; i < maxUnnamed; ++i)
+        {
+            auto scriptA = i < unnamedA.size() ? unnamedA[i] : nullptr;
+            auto scriptB = i < unnamedB.size() ? unnamedB[i] : nullptr;
+            auto initDiff = diff_objects(scriptA, scriptB);
+            if (initDiff->hasChanges())
+                parent->children.push_back(std::move(initDiff));
+        }
+
+        return;
+    }
+
+    // Default behavior for other object types: match by ID
+    QMap<QUuid, const ConfigObject *> aChildren, bChildren;
+
+    for (auto child: get_config_children(a))
         aChildren[child->getId()] = child;
 
-    for (auto child : get_config_children(b))
+    for (auto child: get_config_children(b))
         bChildren[child->getId()] = child;
 
     // Find all IDs
     QSet<QUuid> allIds;
-    for (auto id : aChildren.keys())
+    for (auto id: aChildren.keys())
         allIds.insert(id);
-    for (auto id : bChildren.keys())
+    for (auto id: bChildren.keys())
         allIds.insert(id);
 
     // Diff each child
-    for (const auto& id : allIds)
+    for (const auto &id: allIds)
     {
         auto childDiff = diff_objects(aChildren.value(id), bChildren.value(id));
 
@@ -361,7 +438,7 @@ void diff_children(const ConfigObject* a, const ConfigObject* b, DiffNode* paren
 }
 
 // Recursive text output helper
-void node_to_text(const DiffNode* node, QTextStream& out, int indent, bool showUnchanged)
+void node_to_text(const DiffNode *node, QTextStream &out, int indent, bool showUnchanged)
 {
     if (!node)
         return;
@@ -401,13 +478,13 @@ void node_to_text(const DiffNode* node, QTextStream& out, int indent, bool showU
         if (!node->scriptDiff.isEmpty())
         {
             out << indentStr << "  Script Diff:\n";
-            for (const auto& line : node->scriptDiff.split('\n'))
+            for (const auto &line: node->scriptDiff.split('\n'))
                 out << indentStr << "    " << line << "\n";
         }
     }
 
     // Recursively process children
-    for (const auto& child : node->children)
+    for (const auto &child: node->children)
         node_to_text(child.get(), out, indent + 1, showUnchanged);
 }
 
@@ -423,15 +500,15 @@ QString DiffNode::getTypeName() const
     if (!obj)
         return "Unknown";
 
-    if (qobject_cast<const VMEConfig*>(obj))
+    if (qobject_cast<const VMEConfig *>(obj))
         return "VMEConfig";
-    if (qobject_cast<const EventConfig*>(obj))
+    if (qobject_cast<const EventConfig *>(obj))
         return "EventConfig";
-    if (qobject_cast<const ModuleConfig*>(obj))
+    if (qobject_cast<const ModuleConfig *>(obj))
         return "ModuleConfig";
-    if (qobject_cast<const VMEScriptConfig*>(obj))
+    if (qobject_cast<const VMEScriptConfig *>(obj))
         return "VMEScriptConfig";
-    if (qobject_cast<const ContainerObject*>(obj))
+    if (qobject_cast<const ContainerObject *>(obj))
         return "Container";
 
     return "ConfigObject";
@@ -445,7 +522,7 @@ bool DiffNode::hasChanges() const
     if (!propertyChanges.isEmpty())
         return true;
 
-    for (const auto& child : children)
+    for (const auto &child: children)
     {
         if (child->hasChanges())
             return true;
@@ -474,7 +551,7 @@ void ConfigDiff::buildObjectMap()
         buildObjectMapRecursive(m_root.get());
 }
 
-void ConfigDiff::buildObjectMapRecursive(const DiffNode* node)
+void ConfigDiff::buildObjectMapRecursive(const DiffNode *node)
 {
     if (!node)
         return;
@@ -483,16 +560,13 @@ void ConfigDiff::buildObjectMapRecursive(const DiffNode* node)
     if (obj)
         m_objectMap[obj->getId()] = node;
 
-    for (const auto& child : node->children)
+    for (const auto &child: node->children)
         buildObjectMapRecursive(child.get());
 }
 
-bool ConfigDiff::hasChanges() const
-{
-    return m_root && m_root->hasChanges();
-}
+bool ConfigDiff::hasChanges() const { return m_root && m_root->hasChanges(); }
 
-bool ConfigDiff::isObjectModified(const QUuid& id) const
+bool ConfigDiff::isObjectModified(const QUuid &id) const
 {
     auto node = findNode(id);
     return node && node->hasChanges();
@@ -537,7 +611,7 @@ QVector<QUuid> ConfigDiff::getModifiedObjects() const
     return result;
 }
 
-const DiffNode* ConfigDiff::findNode(const QUuid& id) const
+const DiffNode *ConfigDiff::findNode(const QUuid &id) const
 {
     return m_objectMap.value(id, nullptr);
 }
@@ -616,46 +690,45 @@ QJsonObject ConfigDiff::toJson() const
 // Public API functions
 //
 
-ConfigDiff diff_configs(const ConfigObject* a, const ConfigObject* b)
+ConfigDiff diff_configs(const ConfigObject *a, const ConfigObject *b)
 {
     ConfigDiff result;
     result.setDiffRoot(diff_objects(a, b));
     return result;
 }
 
-ConfigDiff diff_vme_configs(const VMEConfig* a, const VMEConfig* b)
+ConfigDiff diff_vme_configs(const VMEConfig *a, const VMEConfig *b)
 {
-    return diff_configs(static_cast<const ConfigObject*>(a), static_cast<const ConfigObject*>(b));
+    return diff_configs(static_cast<const ConfigObject *>(a), static_cast<const ConfigObject *>(b));
 }
 
-ConfigDiff diff_event_configs(const EventConfig* a, const EventConfig* b)
+ConfigDiff diff_event_configs(const EventConfig *a, const EventConfig *b)
 {
-    return diff_configs(static_cast<const ConfigObject*>(a), static_cast<const ConfigObject*>(b));
+    return diff_configs(static_cast<const ConfigObject *>(a), static_cast<const ConfigObject *>(b));
 }
 
-ConfigDiff diff_module_configs(const ModuleConfig* a, const ModuleConfig* b)
+ConfigDiff diff_module_configs(const ModuleConfig *a, const ModuleConfig *b)
 {
-    return diff_configs(static_cast<const ConfigObject*>(a), static_cast<const ConfigObject*>(b));
+    return diff_configs(static_cast<const ConfigObject *>(a), static_cast<const ConfigObject *>(b));
 }
 
-ConfigDiff diff_module_against_template(const ModuleConfig* mod)
+ConfigDiff diff_module_against_template(const ModuleConfig *mod)
 {
 
-    auto mm = vats::get_module_meta_by_typename(vats::read_templates(), mod->getModuleMeta().typeName);
-    auto templateMod = std::make_unique<ModuleConfig>();
-    templateMod->setModuleMeta(mm ? *mm : vats::VMEModuleMeta());
+    auto templateMod = vme_config::make_module_config(mod->getModuleMeta().typeName);
 
-    // FIXME: it's way more work to correctly construct a module. check
-    // ModuleConfigDialog for how it's done.
+    // Keep some things in sync as they're not interesting to have in the diff.
+    templateMod->setId(mod->getId());
+    templateMod->setObjectName(mod->objectName());
+    templateMod->setBaseAddress(mod->getBaseAddress());
+    templateMod->setEnabled(mod->isEnabled());
 
-
-
-    auto ret = diff_configs(mod, templateMod.get());
+    auto ret = diff_configs(templateMod.get(), mod);
     ret.takeOwnership(std::move(templateMod));
     return ret;
 }
 
-ConfigDiff diff_event_against_template(const EventConfig* event)
+ConfigDiff diff_event_against_template(const EventConfig *event)
 {
     // defaults used in mvme. not DRY but good enough for now.
     const u8 irq = 1;
