@@ -1564,7 +1564,7 @@ void VMEConfigTreeWidget::treeContextMenu(const QPoint &pos)
                     auto diff = vme_config::diff_module_against_template(moduleConfig);
                     auto widget = std::make_unique<VMEConfigDiffWidget>();
                     widget->setDiff(std::move(diff));
-                    widget->setWindowTitle("Diff: " + moduleConfig->objectName() + "vs Template");
+                    widget->setWindowTitle("Diff: " + moduleConfig->objectName() + " vs Template");
                     widget->setAttribute(Qt::WA_DeleteOnClose);
                     widget->show();
                     add_widget_close_action(widget.get());

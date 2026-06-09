@@ -118,8 +118,10 @@ QString get_status_text(DiffNode::Status status)
     return "Unknown";
 }
 
+// This is the summary text shown in the 'Changes' column.
 QString get_changes_text(const DiffNode *node)
 {
+    assert(node);
     if (!node)
         return QString();
 
@@ -172,19 +174,24 @@ QString get_changes_text(const DiffNode *node)
         }
         else
         {
-            //// Check if both values are QVariantMaps for a summary
-            //if (values.first.userType() == QMetaType::QVariantMap &&
-            //    values.second.userType() == QMetaType::QVariantMap)
-            //{
-            //    QVariantMap oldMap = values.first.toMap();
-            //    QVariantMap newMap = values.second.toMap();
+            // Check if both values are QVariantMaps for a summary
+            if (values.first.userType() == QMetaType::QVariantMap &&
+                values.second.userType() == QMetaType::QVariantMap)
+            {
+                QVariantMap oldMap = values.first.toMap();
+                QVariantMap newMap = values.second.toMap();
 
-            //    changes << format_variant_map_diff(oldMap, newMap);
-            //}
-            //else
+                changes << format_variant_map_diff(oldMap, newMap);
+            }
+            else
             {
                 // For simple types, just show the property name
                 changes << key;
+
+                changes << QString("%1: %2 → %3")
+                               .arg(key)
+                               .arg(values.first.toString())
+                               .arg(values.second.toString());
             }
         }
     }
@@ -220,6 +227,8 @@ void populate_model_recursive(QStandardItem *parentItem, const DiffNode *node)
     auto *statusItem = new QStandardItem(get_status_text(node->status));
     auto *changesItem = new QStandardItem(get_changes_text(node));
 
+    qDebug() << "changesItem.text(): " << changesItem->text();
+
     // Set background colors based on status
     QColor bgColor = get_status_color(node->status);
     nameItem->setBackground(QBrush(bgColor));
@@ -242,6 +251,7 @@ void populate_model_recursive(QStandardItem *parentItem, const DiffNode *node)
     else
     {
         // This shouldn't happen in our case, but handle it anyway
+        assert(false);
         return;
     }
 
