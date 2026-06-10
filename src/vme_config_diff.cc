@@ -240,8 +240,6 @@ void compare_vmeconfig_properties(const VMEConfig *a, const VMEConfig *b, DiffNo
 // Main object comparison function
 std::unique_ptr<DiffNode> diff_objects(const ConfigObject *a, const ConfigObject *b)
 {
-    qDebug() << PRETTY_FUNCTION << "Comparing" << a << "to" << b;
-
     auto node = std::make_unique<DiffNode>();
 
     // Handle null cases
@@ -503,6 +501,36 @@ void node_to_text(const DiffNode *node, QTextStream &out, int indent, bool showU
         node_to_text(child.get(), out, indent + 1, showUnchanged);
 }
 
+// Creates a new ModuleConfig instance with the same type as the original but
+// using the mvme template default values. Some base settings are copied from
+// the original as they're not interesting to have in the diff output.
+std::unique_ptr<ModuleConfig> make_module_for_diff(const ModuleConfig *original)
+{
+    auto ret = vme_config::make_module_config(original->getModuleMeta().typeName);
+    ret->setId(original->getId());
+    ret->setObjectName(original->objectName());
+    ret->setBaseAddress(original->getBaseAddress());
+    ret->setModuleMeta(original->getModuleMeta());
+    return ret;
+}
+
+// Creates a new EventConfig using the template defaults. Additionally creates
+// default child ModuleConfigs for all modules present in the orignal event.
+// This way both the event itself and the child modules can be compared against
+// the defaults.
+std::unique_ptr<EventConfig> make_event_for_diff(const EventConfig *original)
+{
+    auto templateEvent = vme_config::make_new_event_config();
+
+    for (const auto &mod: original->getModuleConfigs())
+    {
+        auto templateMod = make_module_for_diff(mod);
+        templateEvent->addModuleConfig(templateMod.release());
+    }
+
+    return templateEvent;
+}
+
 } // anonymous namespace
 
 //
@@ -729,15 +757,7 @@ ConfigDiff diff_module_configs(const ModuleConfig *a, const ModuleConfig *b)
 
 ConfigDiff diff_module_against_template(const ModuleConfig *mod)
 {
-
-    auto templateMod = vme_config::make_module_config(mod->getModuleMeta().typeName);
-
-    // Keep some things in sync as they're not interesting to have in the diff.
-    templateMod->setId(mod->getId());
-    templateMod->setObjectName(mod->objectName());
-    templateMod->setBaseAddress(mod->getBaseAddress());
-    templateMod->setEnabled(mod->isEnabled());
-
+    auto templateMod = make_module_for_diff(mod);
     auto ret = diff_configs(templateMod.get(), mod);
     ret.takeOwnership(std::move(templateMod));
     return ret;
@@ -745,7 +765,7 @@ ConfigDiff diff_module_against_template(const ModuleConfig *mod)
 
 ConfigDiff diff_event_against_template(const EventConfig *event)
 {
-    auto templateEvent = vme_config::make_new_event_config();
+    auto templateEvent = make_event_for_diff(event);
     auto ret = diff_configs(templateEvent.get(), event);
     ret.takeOwnership(std::move(templateEvent));
     return ret;
