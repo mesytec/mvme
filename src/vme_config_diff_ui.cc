@@ -222,43 +222,46 @@ void populate_model_recursive(QStandardItem *parentItem, const DiffNode *node)
     if (!node)
         return;
 
-    // Create items for this node
-    auto *nameItem = new QStandardItem(get_object_display_name(node));
-    auto *statusItem = new QStandardItem(get_status_text(node->status));
-    auto *changesItem = new QStandardItem(get_changes_text(node));
-
-    qDebug() << "changesItem.text(): " << changesItem->text();
-
-    // Set background colors based on status
-    QColor bgColor = get_status_color(node->status);
-    nameItem->setBackground(QBrush(bgColor));
-    statusItem->setBackground(QBrush(bgColor));
-    changesItem->setBackground(QBrush(bgColor));
-
-    // Make items non-editable
-    nameItem->setEditable(false);
-    statusItem->setEditable(false);
-    changesItem->setEditable(false);
-
-    // Store pointer to DiffNode in the item for later access
-    nameItem->setData(QVariant::fromValue(reinterpret_cast<quintptr>(node)), Qt::UserRole);
-
-    // Add row to parent
-    if (parentItem)
+    if (node->status != DiffNode::Status::Unchanged)
     {
-        parentItem->appendRow({nameItem, statusItem, changesItem});
-    }
-    else
-    {
-        // This shouldn't happen in our case, but handle it anyway
-        assert(false);
-        return;
-    }
+        // Create items for this node
+        auto *nameItem = new QStandardItem(get_object_display_name(node));
+        auto *statusItem = new QStandardItem(get_status_text(node->status));
+        auto *changesItem = new QStandardItem(get_changes_text(node));
 
-    // Recursively add children
-    for (const auto &child: node->children)
-    {
-        populate_model_recursive(nameItem, child.get());
+        qDebug() << "changesItem.text(): " << changesItem->text();
+
+        // Set background colors based on status
+        QColor bgColor = get_status_color(node->status);
+        nameItem->setBackground(QBrush(bgColor));
+        statusItem->setBackground(QBrush(bgColor));
+        changesItem->setBackground(QBrush(bgColor));
+
+        // Make items non-editable
+        nameItem->setEditable(false);
+        statusItem->setEditable(false);
+        changesItem->setEditable(false);
+
+        // Store pointer to DiffNode in the item for later access
+        nameItem->setData(QVariant::fromValue(reinterpret_cast<quintptr>(node)), Qt::UserRole);
+
+        // Add row to parent
+        if (parentItem)
+        {
+            parentItem->appendRow({nameItem, statusItem, changesItem});
+        }
+        else
+        {
+            // This shouldn't happen in our case, but handle it anyway
+            assert(false);
+            return;
+        }
+
+        // Recursively add children
+        for (const auto &child: node->children)
+        {
+            populate_model_recursive(nameItem, child.get());
+        }
     }
 }
 
