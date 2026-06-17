@@ -4,6 +4,11 @@
 Changelog
 ##################################################
 
+Version 1.19.1
+--------------------------------------------------
+
+* event_builder: suppress completely empty output events. Fixes weird looking counts in the analysis window.
+
 Version 1.19.0
 --------------------------------------------------
 
@@ -18,6 +23,8 @@ Version 1.19.0
    - Add new templates for MDPP32-v2_SCP/QDC
 
    - Update 'Module Init' of MTDC-32 (bank input config + bank input threshold)
+
+   - Update the MDPP-16/32 (Streaming) SCP/QDC templates: new event header filters for streaming mode,
 
 * doc: Cleanup the MVLC Trigger I/O section. No more reserved units.
 
