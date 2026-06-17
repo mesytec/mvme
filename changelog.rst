@@ -4,7 +4,7 @@
 Changelog
 ##################################################
 
-Version 1.17.99
+Version 1.18
 --------------------------------------------------
 
 Important: mvme-1.18 contains the new event builder implementation which has a
