@@ -4,7 +4,27 @@
 Changelog
 ##################################################
 
-Version 1.18
+Version 1.19.0
+--------------------------------------------------
+
+* new feature: A rudimentary diff tool to compare an existing VME config against
+  the template baseline.
+
+  The Diff UI can be accessed by right-clicking on an Event or Module and
+  selecting 'Compare with Template' in the context menu.
+
+*  templates:
+
+   - Add new templates for MDPP32-v2_SCP/QDC
+
+   - Update 'Module Init' of MTDC-32 (bank input config + bank input threshold)
+
+* doc: Cleanup the MVLC Trigger I/O section. No more reserved units.
+
+* Fix the MVLC VME scanbus UI looping forever if the MVLC cannot be reached.
+
+
+Version 1.18.0
 --------------------------------------------------
 
 Important: mvme-1.18 contains the new event builder implementation which has a
