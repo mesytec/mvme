@@ -6,7 +6,10 @@
 #include <QString>
 
 #include "libmvme_export.h"
-#include "mvlc/mvlc_trigger_io.h"
+#include <mesytec-mvlc/mesytec-mvlc.h>
+
+using namespace mesytec::mvlc;
+using namespace mesytec::mvlc::trigger_io;
 
 namespace mesytec
 {
@@ -68,6 +71,6 @@ QDebug operator<<(
     QDebug dbg, const mesytec::mvme_mvlc::trigger_io::PinAddress &pin);
 
 QDebug operator<<(
-    QDebug dbg, const mesytec::mvme_mvlc::trigger_io::UnitAddress &unit);
+    QDebug dbg, const mesytec::mvlc::trigger_io::UnitAddress &unit);
 
 #endif /* __MVME_MVLC_TRIGGER_IO_SIM_PINADDRESS_H__ */

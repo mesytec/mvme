@@ -225,10 +225,8 @@ add_library(libmvme SHARED
     mvlc/mvlc_qt_object.cc
     mvlc/mvlc_register_names.cc
     mvlc/mvlc_script.cc
-    mvlc/mvlc_trigger_io.cc
     mvlc/mvlc_trigger_io_editor.cc
     mvlc/mvlc_trigger_io_editor_p.cc
-    mvlc/mvlc_trigger_io_script.cc
     mvlc/mvlc_trigger_io_util.cc
     mvlc/mvlc_util.cc
     mvlc/mvlc_vme_controller.cc

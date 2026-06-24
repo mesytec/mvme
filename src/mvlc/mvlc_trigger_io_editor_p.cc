@@ -40,6 +40,7 @@
 #include "mvme_qthelp.h"
 
 using boost::adaptors::indexed;
+using namespace mesytec::mvlc;
 
 namespace
 {
@@ -2050,7 +2051,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
             auto e = b + NIM_IO_Count;
             QStringList names;
 
-            std::copy(b, e, std::back_inserter(names));
+            std::transform(b, e, std::back_inserter(names), [] (const auto &name) { return QString::fromStdString(name); });
 
             m_level0InputItems.nimItem->setOutputNames(names);
         }
@@ -2061,7 +2062,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
             auto e = b + Level0::IRQ_Inputs_Count;
             QStringList names;
 
-            std::copy(b, e, std::back_inserter(names));
+            std::transform(b, e, std::back_inserter(names), [] (const auto &name) { return QString::fromStdString(name); });
 
             m_level0InputItems.irqItem->setOutputNames(names);
         }
@@ -2072,7 +2073,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
             auto e = b + Level0::UtilityUnitCount;
             QStringList names;
 
-            std::copy(b, e, std::back_inserter(names));
+            std::transform(b, e, std::back_inserter(names), [] (const auto &name) { return QString::fromStdString(name); });
 
             m_level0UtilItems.utilsItem->setOutputNames(names);
         }
@@ -2094,7 +2095,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
                     }
                     else
                     {
-                        names.push_back(lut.outputNames[output]);
+                        names.push_back(QString::fromStdString(lut.outputNames[output]));
                     }
                 }
 
@@ -2116,7 +2117,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
                     if (lut.defaultOutputNames[output] == lut.outputNames[output])
                         names.push_back(QString::number(output));
                     else
-                        names.push_back(lut.outputNames[output]);
+                        names.push_back(QString::fromStdString(lut.outputNames[output]));
                 }
 
                 m_level2Items.luts[kv.index()]->setOutputNames(names);
@@ -2129,7 +2130,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
             auto e = b + NIM_IO_Count;
             QStringList names;
 
-            std::copy(b, e, std::back_inserter(names));
+            std::transform(b, e, std::back_inserter(names), [] (const auto &name) { return QString::fromStdString(name); });
 
             m_level3Items.nimItem->setInputNames(names);
         }
@@ -2140,7 +2141,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
             auto e = b + ECL_OUT_Count;
             QStringList names;
 
-            std::copy(b, e, std::back_inserter(names));
+            std::transform(b, e, std::back_inserter(names), [] (const auto &name) { return QString::fromStdString(name); });
 
             m_level3Items.eclItem->setInputNames(names);
         }
@@ -2152,7 +2153,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
                 auto e = b + Level3::UtilityUnitCount;
                 QStringList names;
 
-                std::copy(b, e, std::back_inserter(names));
+                std::transform(b, e, std::back_inserter(names), [] (const auto &name) { return QString::fromStdString(name); });
 
                 m_level3UtilItems.utilsItem->setInputNames(names);
             }
@@ -2160,7 +2161,7 @@ void TriggerIOGraphicsScene::setTriggerIOConfig(const TriggerIO &ioCfg)
             // FIXME: counters hack
             for (unsigned counter=0; counter < Level3::CountersCount; ++counter)
             {
-                QString name = ioCfg.l3.unitNames.value(counter + Level3::CountersOffset);
+                QString name = QString::fromStdString(ioCfg.l3.unitNames.at(counter + Level3::CountersOffset));
                 m_level3UtilItems.counterItems[counter]->setCounterName(name);
             }
         }
@@ -2968,7 +2969,7 @@ Level0UtilsDialog::Level0UtilsDialog(
 
 
             ret.table->setItem(row, ret.ColName, new QTableWidgetItem(
-                    l0.unitNames.value(row)));
+                    QString::fromStdString(l0.unitNames.at(row))));
 
             ret.table->setCellWidget(row, ret.ColRange, combo_range);
 
@@ -3036,7 +3037,7 @@ Level0UtilsDialog::Level0UtilsDialog(
             combo_stack->setCurrentIndex(stackBusy.stackIndex);
 
             ret.table->setItem(row, ret.ColName, new QTableWidgetItem(
-                    l0.unitNames.value(row + nameOffset)));
+                    QString::fromStdString(l0.unitNames.at(row + nameOffset))));
 
             ret.table->setCellWidget(row, ret.ColStackIndex, combo_stack);
 
@@ -3091,7 +3092,7 @@ Level0UtilsDialog::Level0UtilsDialog(
             auto combo_type = new QComboBox;
             combo_type->addItem("IRQ", static_cast<int>(TriggerResource::Type::IRQ));
             combo_type->addItem("SoftTrigger", static_cast<int>(TriggerResource::Type::SoftTrigger));
-            combo_type->addItem("SlaveTrigger", static_cast<int>(TriggerResource::Type::SlaveTrigger));
+            combo_type->addItem("SyncInTrigger", static_cast<int>(TriggerResource::Type::SyncInTrigger));
             combo_type->setCurrentIndex(combo_type->findData(static_cast<int>(tr.type)));
 
             // Enable/disable cells based on the resource type selection.
@@ -3118,11 +3119,11 @@ Level0UtilsDialog::Level0UtilsDialog(
                 auto type = static_cast<Type>(combo_type->currentData().toInt());
 
                 update_enabled(table, row, UI::ColIRQIndex, type == Type::IRQ);
-                update_enabled(table, row, UI::ColSlaveTriggerIndex, type == Type::SlaveTrigger);
-                update_enabled(table, row, UI::ColDelay, type == Type::SlaveTrigger);
-                update_enabled(table, row, UI::ColWidth, type == Type::SlaveTrigger);
-                update_enabled(table, row, UI::ColHoldoff, type == Type::SlaveTrigger);
-                update_enabled(table, row, UI::ColInvert, type == Type::SlaveTrigger);
+                update_enabled(table, row, UI::ColSlaveTriggerIndex, type == Type::SyncInTrigger);
+                update_enabled(table, row, UI::ColSlaveTriggerIndex, type == Type::SyncInTrigger);
+                update_enabled(table, row, UI::ColWidth, type == Type::SyncInTrigger);
+                update_enabled(table, row, UI::ColHoldoff, type == Type::SyncInTrigger);
+                update_enabled(table, row, UI::ColInvert, type == Type::SyncInTrigger);
             };
 
             connect(combo_type, qOverload<int>(&QComboBox::currentIndexChanged),
@@ -3136,19 +3137,19 @@ Level0UtilsDialog::Level0UtilsDialog(
             // SlaveTrigger
             auto spin_slaveTriggerIndex = new QSpinBox;
             spin_slaveTriggerIndex->setRange(0, 3);
-            spin_slaveTriggerIndex->setValue(tr.slaveTrigger.triggerIndex);
+            spin_slaveTriggerIndex->setValue(tr.syncOutTrigger.triggerIndex);
 
             auto check_invert = new QCheckBox;
-            check_invert->setChecked(tr.slaveTrigger.gateGenerator.invert);
+            check_invert->setChecked(tr.syncOutTrigger.gateGenerator.invert);
 
             // Populate the table
-            ret.table->setItem(row, ret.ColName, new QTableWidgetItem(l0.unitNames.value(row + nameOffset)));
+            ret.table->setItem(row, ret.ColName, new QTableWidgetItem(QString::fromStdString(l0.unitNames.at(row + nameOffset))));
             ret.table->setCellWidget(row, ret.ColType, combo_type);
             ret.table->setCellWidget(row, ret.ColIRQIndex, spin_irqIndex);
             ret.table->setCellWidget(row, ret.ColSlaveTriggerIndex, spin_slaveTriggerIndex);
-            ret.table->setItem(row, ret.ColDelay, new QTableWidgetItem(QString::number(tr.slaveTrigger.gateGenerator.delay)));
-            ret.table->setItem(row, ret.ColWidth, new QTableWidgetItem(QString::number(tr.slaveTrigger.gateGenerator.width)));
-            ret.table->setItem(row, ret.ColHoldoff, new QTableWidgetItem(QString::number(tr.slaveTrigger.gateGenerator.holdoff)));
+            ret.table->setItem(row, ret.ColDelay, new QTableWidgetItem(QString::number(tr.syncOutTrigger.gateGenerator.delay)));
+            ret.table->setItem(row, ret.ColWidth, new QTableWidgetItem(QString::number(tr.syncOutTrigger.gateGenerator.width)));
+            ret.table->setItem(row, ret.ColHoldoff, new QTableWidgetItem(QString::number(tr.syncOutTrigger.gateGenerator.holdoff)));
             ret.table->setCellWidget(row, ret.ColInvert, make_centered(check_invert));
 
             // Force initial type update
@@ -3227,7 +3228,7 @@ Level0 Level0UtilsDialog::getSettings() const
 
         for (int row = 0; row < ui.table->rowCount(); row++)
         {
-            m_l0.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text();
+            m_l0.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text().toStdString();
 
             auto &unit = m_l0.timers[row];
             unit.range = static_cast<trigger_io::Timer::Range>(ui.combos_range[row]->currentIndex());
@@ -3242,17 +3243,17 @@ Level0 Level0UtilsDialog::getSettings() const
 
         for (int row = 0; row < ui.table->rowCount(); row++)
         {
-            m_l0.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text();
+            m_l0.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text().toStdString();
 
             auto &tr = m_l0.triggerResources[row];
             tr.type = static_cast<TriggerResource::Type>(ui.combos_type[row]->currentData().toInt());
             tr.irqUtil.irqIndex = ui.spins_irqIndex[row]->value() - 1;
 
-            tr.slaveTrigger.triggerIndex = ui.spins_slaveTriggerIndex[row]->value();
-            tr.slaveTrigger.gateGenerator.delay = ui.table->item(row, ui.ColDelay)->text().toUInt();
-            tr.slaveTrigger.gateGenerator.width = ui.table->item(row, ui.ColWidth)->text().toUInt();
-            tr.slaveTrigger.gateGenerator.holdoff = ui.table->item(row, ui.ColHoldoff)->text().toUInt();
-            tr.slaveTrigger.gateGenerator.invert = ui.checks_invert[row]->isChecked();
+            tr.syncOutTrigger.triggerIndex = ui.spins_slaveTriggerIndex[row]->value();
+            tr.syncOutTrigger.gateGenerator.delay = ui.table->item(row, ui.ColDelay)->text().toUInt();
+            tr.syncOutTrigger.gateGenerator.width = ui.table->item(row, ui.ColWidth)->text().toUInt();
+            tr.syncOutTrigger.gateGenerator.holdoff = ui.table->item(row, ui.ColHoldoff)->text().toUInt();
+            tr.syncOutTrigger.gateGenerator.invert = ui.checks_invert[row]->isChecked();
         }
     }
 
@@ -3261,7 +3262,7 @@ Level0 Level0UtilsDialog::getSettings() const
 
         for (int row = 0; row < ui.table->rowCount(); row++)
         {
-            m_l0.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text();
+            m_l0.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text().toStdString();
 
             auto &unit = m_l0.stackBusy[row];
             unit.stackIndex = ui.combos_stack[row]->currentData().toUInt();
@@ -3348,7 +3349,7 @@ Level3UtilsDialog::Level3UtilsDialog(
             combo_stack->setCurrentIndex(comboIndex);
 
             table->setItem(row, ret.ColName, new QTableWidgetItem(
-                    l3.unitNames.value(row + ret.FirstUnitIndex)));
+                    QString::fromStdString(l3.unitNames.at(row + ret.FirstUnitIndex))));
             table->setCellWidget(row, ret.ColConnection, combo_connection);
             table->setCellWidget(row, ret.ColStack, combo_stack);
 
@@ -3421,7 +3422,7 @@ Level3UtilsDialog::Level3UtilsDialog(
             check_activate->setChecked(l3.masterTriggers[row].activate);
 
             table->setItem(row, ret.ColName, new QTableWidgetItem(
-                    l3.unitNames.value(row + ret.FirstUnitIndex)));
+                    QString::fromStdString(l3.unitNames.at(row + ret.FirstUnitIndex))));
             table->setCellWidget(row, ret.ColConnection, combo_connection);
             table->setCellWidget(row, ret.ColActivate, make_centered(check_activate));
         }
@@ -3493,7 +3494,7 @@ Level3UtilsDialog::Level3UtilsDialog(
             cb_softActivate->setChecked(l3.counters[row].softActivate);
 
             table->setItem(row, ret.ColName, new QTableWidgetItem(
-                    l3.unitNames.value(row + ret.FirstUnitIndex)));
+                    QString::fromStdString(l3.unitNames.at(row + ret.FirstUnitIndex))));
             table->setCellWidget(row, ret.ColCounterConnection, combo_counter_connection);
             table->setCellWidget(row, ret.ColLatchConnection, combo_latch_connection);
             table->setCellWidget(row, ret.ColClearOnLatch, make_centered(cb_clearOnLatch));
@@ -3560,7 +3561,7 @@ Level3 Level3UtilsDialog::getSettings() const
 
         for (int row = 0; row < ui.table->rowCount(); row++)
         {
-            m_l3.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text();
+            m_l3.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text().toStdString();
             m_l3.connections[row + ui.FirstUnitIndex] =
                 { ui.combos_connection[row]->currentData().toUInt() };
             auto &unit = m_l3.stackStart[row];
@@ -3575,7 +3576,7 @@ Level3 Level3UtilsDialog::getSettings() const
 
         for (int row = 0; row < ui.table->rowCount(); row++)
         {
-            m_l3.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text();
+            m_l3.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text().toStdString();
             m_l3.connections[row + ui.FirstUnitIndex] =
                 { ui.combos_connection[row]->currentData().toUInt() };
             auto &unit = m_l3.masterTriggers[row];
@@ -3588,7 +3589,7 @@ Level3 Level3UtilsDialog::getSettings() const
 
         for (int row = 0; row < ui.table->rowCount(); row++)
         {
-            m_l3.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text();
+            m_l3.unitNames[row + ui.FirstUnitIndex] = ui.table->item(row, ui.ColName)->text().toStdString();
             m_l3.connections[row + ui.FirstUnitIndex] =
                 {
                     static_cast<unsigned>(ui.combos_connection[row]->currentIndex()),

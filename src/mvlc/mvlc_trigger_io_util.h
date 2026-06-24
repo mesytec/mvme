@@ -22,19 +22,15 @@
 #define __MVME_MVLC_TRIGGER_IO_UTIL_H__
 
 #include <QTextStream>
-#include "mvlc/mvlc_trigger_io.h"
+#include <mesytec-mvlc/mesytec-mvlc.h>
 
-namespace mesytec
-{
-namespace mvme_mvlc
-{
-namespace trigger_io
+namespace mesytec::mvme_mvlc::trigger_io
 {
 
-QTextStream &print_front_panel_io_table(QTextStream &out, const TriggerIO &ioCfg);
+static const QString MetaTagMVLCTriggerIO = "mvlc_trigger_io";
 
-} // end namespace trigger_io
-} // end namespace mvme_mvlc
-} // end namespace mesytec
+QTextStream &print_front_panel_io_table(QTextStream &out, const mesytec::mvlc::trigger_io::TriggerIO &ioCfg);
+
+}
 
 #endif /* __MVME_MVLC_TRIGGER_IO_UTIL_H__ */

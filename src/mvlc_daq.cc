@@ -24,12 +24,13 @@
 #include "mesytec-mvlc/mvlc_command_builders.h"
 #include "mvlc/mvlc_vme_controller.h"
 #include "mvlc/mvlc_qt_object.h"
-#include "mvlc/mvlc_trigger_io_script.h"
 #include "mvlc/vmeconfig_to_crateconfig.h"
 #include "mvlc/mvlc_util.h"
 #include "util/strings.h"
 #include "vme_config_scripts.h"
 #include "vme_daq.h"
+
+using namespace mesytec::mvlc;
 
 namespace mesytec
 {
@@ -286,7 +287,7 @@ std::pair<std::vector<u32>, std::error_code> get_trigger_values(const VMEConfig 
                 } break;
 
             case TriggerCondition::Periodic:
-                if (timersInUse >= mvme_mvlc::trigger_io::TimerCount)
+                if (timersInUse >= trigger_io::TimerCount)
                 {
                     auto ec = make_error_code(mvlc::MVLCErrorCode::TimerCountExceeded);
                     return std::make_pair(triggerValues, ec);

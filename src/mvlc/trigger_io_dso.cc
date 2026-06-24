@@ -373,7 +373,7 @@ QString get_trigger_default_name(unsigned combinedTriggerIndex)
         assert(pa.unit[1] < Level0::DefaultUnitNames.size());
 
         if (pa.unit[1] < Level0::DefaultUnitNames.size())
-            return Level0::DefaultUnitNames.at(pa.unit[1]);
+            return Level0::DefaultUnitNames.at(pa.unit[1]).c_str();
     }
 
     return {};

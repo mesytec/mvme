@@ -50,7 +50,6 @@
 
 #include "analysis/analysis.h"
 #include "data_filter_edit.h"
-#include "mvlc/mvlc_trigger_io.h"
 #include "qt-collapsible-section/Section.h"
 #include "util/qt_font.h"
 #include "vme_config.h"

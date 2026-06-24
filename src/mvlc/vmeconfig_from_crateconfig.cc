@@ -2,7 +2,6 @@
 #include "mesytec-mvlc/mvlc_command_builders.h"
 #include "mesytec-mvlc/mvlc_constants.h"
 #include "mesytec-mvlc/vme_constants.h"
-#include "mvlc/mvlc_trigger_io_script.h"
 #include "mvlc/vmeconfig_from_crateconfig.h"
 #include "vme.h"
 #include "vme_script.h"
@@ -335,7 +334,7 @@ std::unique_ptr<VMEConfig> vmeconfig_from_crateconfig(
         // formatted and commented again. The drawback is that all Timers and
         // Counters and their connections will be shown as active in the UI.
         auto unparsedText = lines.join("\n");
-        auto triggerIO = mvme_mvlc::trigger_io::parse_trigger_io_script_text(unparsedText);
+        auto triggerIO = mvlc::trigger_io::parse_trigger_io_vmescript(unparsedText.toStdString());
 
         for (auto &timer: triggerIO.l0.timers)
             timer.softActivate = true;
@@ -344,7 +343,7 @@ std::unique_ptr<VMEConfig> vmeconfig_from_crateconfig(
             counter.softActivate = true;
 
         triggerIOScript->setScriptContents(
-            mvme_mvlc::trigger_io::generate_trigger_io_script_text(triggerIO));
+            mvlc::trigger_io::generate_trigger_io_vmescript(triggerIO).c_str());
     }
 
     auto make_scriptconfig_from_stack_group = [] (

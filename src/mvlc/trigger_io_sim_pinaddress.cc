@@ -14,9 +14,9 @@ QStringList pin_path_list(const TriggerIO &trigIO, const PinAddress &pa)
     if (pa.unit[0] == 0)
     {
         if (pa.pos == PinPosition::Input)
-            return { "sampled", lookup_default_name(trigIO, pa.unit) };
+            return { "sampled", lookup_default_name(trigIO, pa.unit).c_str() };
         else
-            return { "L0", lookup_default_name(trigIO, pa.unit) };
+            return { "L0", lookup_default_name(trigIO, pa.unit).c_str() };
     }
 
     if (pa.unit[0] == 1 || pa.unit[0] == 2)
@@ -47,9 +47,9 @@ QStringList pin_path_list(const TriggerIO &trigIO, const PinAddress &pa)
     if (pa.unit[0] == 3)
     {
         if (pa.pos == PinPosition::Input)
-            return { "L3in", lookup_default_name(trigIO, pa.unit) };
+            return { "L3in", lookup_default_name(trigIO, pa.unit).c_str() };
         else
-            return { "L3out", lookup_default_name(trigIO, pa.unit) };
+            return { "L3out", lookup_default_name(trigIO, pa.unit).c_str() };
     }
 
     return {};
@@ -71,14 +71,14 @@ QString pin_name(const TriggerIO &trigIO, const PinAddress &pa)
 QString pin_user_name(const TriggerIO &trigIO, const PinAddress &pa)
 {
     if (pa.unit[0] == 0)
-        return lookup_name(trigIO, pa.unit);
+        return lookup_name(trigIO, pa.unit).c_str();
 
     if (pa.unit[0] == 1)
     {
         if (pa.pos == PinPosition::Output)
-            return lookup_name(trigIO, pa.unit);
+            return lookup_name(trigIO, pa.unit).c_str();
         auto con =  Level1::StaticConnections[pa.unit[1]][pa.unit[2]];
-        return lookup_name(trigIO, con.address);
+        return lookup_name(trigIO, con.address).c_str();
     }
 
     if (pa.unit[0] == 2)
@@ -86,25 +86,25 @@ QString pin_user_name(const TriggerIO &trigIO, const PinAddress &pa)
         if (pa.pos == PinPosition::Output)
         {
             if (pa.unit[2] < LUT::OutputBits)
-                return lookup_name(trigIO, pa.unit);
+                return lookup_name(trigIO, pa.unit).c_str();
             return {}; // strobeOut
         }
 
         auto con = Level2::StaticConnections[pa.unit[1]][pa.unit[2]];
 
         if (!con.isDynamic)
-            return lookup_name(trigIO, con.address);
+            return lookup_name(trigIO, con.address).c_str();
 
         auto srcAddr = get_connection_unit_address(trigIO, pa.unit);
-        return lookup_name(trigIO, srcAddr);
+        return lookup_name(trigIO, srcAddr).c_str();
     }
 
     if (pa.unit[0] == 3)
     {
         if (pa.pos == PinPosition::Output)
-            return lookup_name(trigIO, pa.unit);
+            return lookup_name(trigIO, pa.unit).c_str();
         auto srcAddr = get_connection_unit_address(trigIO, pa.unit);
-        return lookup_name(trigIO, srcAddr);
+        return lookup_name(trigIO, srcAddr).c_str();
     }
 
     return "<pinUserName>";
@@ -145,7 +145,7 @@ QDebug operator<<(QDebug dbg, const mesytec::mvme_mvlc::trigger_io::PinAddress &
     return dbg.maybeSpace();
 }
 
-QDebug operator<<(QDebug dbg, const mesytec::mvme_mvlc::trigger_io::UnitAddress &unit)
+QDebug operator<<(QDebug dbg, const mesytec::mvlc::trigger_io::UnitAddress &unit)
 {
     using namespace mesytec::mvme_mvlc::trigger_io;
 

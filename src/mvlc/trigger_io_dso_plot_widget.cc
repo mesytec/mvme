@@ -26,7 +26,6 @@
 #include "mesytec-mvlc/mvlc_error.h"
 #include "mesytec-mvlc/util/threadsafequeue.h"
 #include "mesytec-mvlc/vme_constants.h"
-#include "mvlc/mvlc_trigger_io.h"
 #include "mvme_qwt.h"
 #include "qt_util.h"
 

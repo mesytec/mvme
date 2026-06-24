@@ -20,7 +20,6 @@
 #include <thread>
 #include <yaml-cpp/yaml.h>
 
-#include "mvlc/mvlc_trigger_io_script.h"
 #include "mvlc/trigger_io_dso_plot_widget.h"
 #include "mvlc/trigger_io_sim.h"
 #include "util/qt_font.h"
@@ -1290,7 +1289,7 @@ struct DSOSimWidget::Private
     };
 
     const char *GUIStateFileName = "mvlc_dso_sim_gui_state.yaml";
-    size_t GUIStateFileMaxSize = Megabytes(1);
+    size_t GUIStateFileMaxSize = mvlc::util::Megabytes(1);
 
     DSOSimWidget *q;
 
@@ -1312,7 +1311,7 @@ struct DSOSimWidget::Private
 
     void onTriggerIOModified()
     {
-        auto trigIO = parse_trigger_io_script_text(this->trigIOScript->getScriptContents());
+        auto trigIO = parse_trigger_io_vmescript(this->trigIOScript->getScriptContents().toStdString());
         this->traceSelectWidget->setTriggerIO(trigIO);
         this->lastResult.sim.trigIO = trigIO;
 

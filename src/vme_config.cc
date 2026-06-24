@@ -31,7 +31,6 @@
 #include <QRegularExpression>
 
 #include "CVMUSBReadoutList.h"
-#include "mvlc/mvlc_trigger_io_script.h"
 #include "qt_util.h"
 #include "util/qt_metaobject.h"
 #include "vme_config_util.h"
@@ -917,7 +916,7 @@ void VMEConfig::setVMEController(VMEControllerType type, const QVariantMap &sett
             triggerIOScript->setProperty("display_name", "MVLC Trigger/IO");
             triggerIOScript->setProperty("icon", ":/vme_module.png");
             triggerIOScript->setScriptContents(
-                mesytec::mvme_mvlc::trigger_io::generate_trigger_io_script_text({}));
+                mesytec::mvlc::trigger_io::generate_trigger_io_vmescript({}).c_str());
             m_globalObjects.addChild(triggerIOScript);
 
             assert(m_globalObjects.findChildByName("mvlc_trigger_io"));

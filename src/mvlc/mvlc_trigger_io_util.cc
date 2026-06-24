@@ -18,14 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#include "mvlc/mvlc_trigger_io_util.h"
+#include <mesytec-mvlc/mesytec-mvlc.h>
+#include "mvlc_trigger_io_util.h"
 #include "util/qt_str.h"
 
-namespace mesytec
-{
-namespace mvme_mvlc
-{
-namespace trigger_io
+using namespace mesytec::mvlc::trigger_io;
+
+namespace mesytec::mvme_mvlc::trigger_io
 {
 
 QTextStream &print_front_panel_io_table(QTextStream &out, const TriggerIO &ioCfg)
@@ -75,7 +74,7 @@ QTextStream &print_front_panel_io_table(QTextStream &out, const TriggerIO &ioCfg
             << QSL("  %1").arg(nim, 2, 10, QLatin1Char(' '))
             << qSetFieldWidth(16)
             << nim_io_state_string(io)
-            << ioCfg.l0.unitNames.at(nim + Level0::NIM_IO_Offset)
+            << ioCfg.l0.unitNames.at(nim + Level0::NIM_IO_Offset).c_str()
             << qSetFieldWidth(0) << endl;
     }
 
@@ -97,13 +96,11 @@ QTextStream &print_front_panel_io_table(QTextStream &out, const TriggerIO &ioCfg
             << QSL("  %1").arg(idx, 1, 10, QLatin1Char(' '))
             << qSetFieldWidth(16)
             << ecl_io_state_string(io)
-            << ioCfg.l3.unitNames.at(idx + Level3::ECL_Unit_Offset)
+            << ioCfg.l3.unitNames.at(idx + Level3::ECL_Unit_Offset).c_str()
             << qSetFieldWidth(0) << endl;
     }
 
     return out;
 }
 
-} // end namespace trigger_io
-} // end namespace mvme_mvlc
-} // end namespace mesytec
+}

@@ -6,7 +6,7 @@
 #include <vector>
 #include <mesytec-mvlc/mesytec-mvlc.h>
 #include "libmvme_export.h"
-#include "mvlc/mvlc_trigger_io.h"
+#include <mesytec-mvlc/mesytec-mvlc.h>
 #include "mvlc/trigger_io_sim_pinaddress.h"
 
 namespace mesytec

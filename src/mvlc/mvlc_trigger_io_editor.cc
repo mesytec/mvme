@@ -27,8 +27,9 @@
 #include <QPushButton>
 #include <QScrollBar>
 
+#include <mesytec-mvlc/mesytec-mvlc.h>
+
 #include "mvlc/trigger_io_dso_sim_ui.h"
-#include "mvlc/mvlc_trigger_io_script.h"
 #include "mvlc/mvlc_trigger_io_util.h"
 #include "qt_assistant_remote_control.h"
 #include "template_system.h"
@@ -58,7 +59,7 @@ struct MVLCTriggerIOEditor::Private
     bool scriptAutorun = false;
     QStringList vmeEventNames;
 
-    trigger_io::DSOSimWidget *dsoWidget = nullptr;
+    mvme_mvlc::trigger_io::DSOSimWidget *dsoWidget = nullptr;
     mvlc::MVLC mvlc;
 
     void onActionPrintFrontPanelSetup();
@@ -220,7 +221,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
     if (scriptConfig->getScriptContents().isEmpty())
         regenerateScript();
     else
-        d->ioCfg = parse_trigger_io_script_text(scriptConfig->getScriptContents());
+        d->ioCfg = parse_trigger_io_vmescript(scriptConfig->getScriptContents().toStdString());
 
     auto scene = new TriggerIOGraphicsScene(d->ioCfg);
     d->scene = scene;
@@ -236,8 +237,8 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
         QVector<QStringList> inputNameLists;
         QStringList strobeInputChoiceNames;
         unsigned strobeConValue = 0u;
-        trigger_io::IO strobeGGSettings = {};
-        std::bitset<trigger_io::LUT::OutputBits> strobedOutputs;
+        mvlc::trigger_io::IO strobeGGSettings = {};
+        std::bitset<mvlc::trigger_io::LUT::OutputBits> strobedOutputs;
 
         // specific handling for Level1
         if (level == 1
@@ -253,14 +254,14 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
                 if (!con.isDynamic)
                 {
                     auto name = lookup_name(ioCfg, con.address);
-                    inputNameLists.push_back({name});
+                    inputNameLists.push_back({name.c_str()});
                 }
                 else
                 {
                     assert(unit == 2);
                     QStringList choiceNames;
                     for (auto &address: Level1::LUT2DynamicInputChoices[inputIndex])
-                        choiceNames.push_back(lookup_name(ioCfg, address));
+                        choiceNames.push_back(lookup_name(ioCfg, address).c_str());
                     inputNameLists.push_back(choiceNames);
                 }
             }
@@ -280,7 +281,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
                 if (!con.isDynamic)
                 {
                     auto name = lookup_name(ioCfg, con.address);
-                    inputNameLists.push_back({name});
+                    inputNameLists.push_back({name.c_str()});
                 }
                 else if (inputIndex < l2InputChoices.lutChoices.size())
                 {
@@ -290,7 +291,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
 
                     for (auto &address: choices)
                     {
-                        choiceNames.push_back(lookup_name(ioCfg, address));
+                        choiceNames.push_back(lookup_name(ioCfg, address).c_str());
                     }
 
                     inputNameLists.push_back(choiceNames);
@@ -298,7 +299,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             }
 
             for (const auto &address: l2InputChoices.strobeChoices)
-                strobeInputChoiceNames.push_back(lookup_name(ioCfg, address));
+                strobeInputChoiceNames.push_back(lookup_name(ioCfg, address).c_str());
 
             strobeConValue = ioCfg.l2.strobeConnections[unit];
             strobeGGSettings = ioCfg.l2.luts[unit].strobeGG;
@@ -313,13 +314,13 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             && 0 <= unit
             && unit < static_cast<int>(ioCfg.l1.luts.size()))
         {
-            outputNames = to_qstrlist(ioCfg.l1.luts[unit].outputNames);
+            outputNames = to_qstrlist_from_std(ioCfg.l1.luts[unit].outputNames);
         }
         else if (level == 2
                  && 0 <= unit
                  && unit < static_cast<int>(ioCfg.l2.luts.size()))
         {
-            outputNames = to_qstrlist(ioCfg.l2.luts[unit].outputNames);
+            outputNames = to_qstrlist_from_std(ioCfg.l2.luts[unit].outputNames);
         }
 
         // run the editor dialog
@@ -384,7 +385,10 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             size_t count = std::min(lut->outputNames.size(),
                                     static_cast<size_t>(outputNames.size()));
 
-            std::copy_n(outputNames.begin(), count, lut->outputNames.begin());
+            std::transform(outputNames.begin(),
+                           outputNames.begin() + count,
+                           lut->outputNames.begin(),
+                           [] (const QString &s) { return s.toStdString(); });
 
             lut->lutContents = editor->getLUTContents();
 
@@ -421,18 +425,22 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
 
         // read names stored in the Level0 structure
         QStringList names;
-        std::copy_n(ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset,
-                    trigger_io::NIM_IO_Count,
-                    std::back_inserter(names));
+
+        std::transform(ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset,
+                       ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset + mvlc::trigger_io::NIM_IO_Count,
+                       std::back_inserter(names),
+                       [] (const std::string &s) { return QString::fromStdString(s); });
 
         // copy the default names from Level0 structure
         QStringList defaultNames;
-        std::copy_n(Level0::DefaultUnitNames.begin() + ioCfg.l0.NIM_IO_Offset,
-                    trigger_io::NIM_IO_Count,
-                    std::back_inserter(defaultNames));
+
+        std::transform(Level0::DefaultUnitNames.begin() + ioCfg.l0.NIM_IO_Offset,
+                       Level0::DefaultUnitNames.begin() + ioCfg.l0.NIM_IO_Offset + mvlc::trigger_io::NIM_IO_Count,
+                       std::back_inserter(defaultNames),
+                       [] (const std::string &s) { return QString::fromStdString(s); });
 
         // settings stored in Level0
-        QVector<trigger_io::IO> settings;
+        QVector<mvlc::trigger_io::IO> settings;
         std::copy(ioCfg.l0.ioNIM.begin(), ioCfg.l0.ioNIM.end(), std::back_inserter(settings));
 
         auto dialog = std::make_unique<NIM_IO_SettingsDialog>(names, defaultNames, settings, this);
@@ -442,14 +450,17 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             auto names = dia->getNames();
 
             // Copy names to L0
-            std::copy_n(names.begin(),
-                        trigger_io::NIM_IO_Count,
-                        ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset);
+
+            std::transform(names.begin(),
+                           names.begin() + mvlc::trigger_io::NIM_IO_Count,
+                           ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset,
+                           [] (const QString &s) { return s.toStdString(); });
 
             // Copy names to L3
-            std::copy_n(names.begin(),
-                        trigger_io::NIM_IO_Count,
-                        ioCfg.l3.unitNames.begin() + ioCfg.l3.NIM_IO_Unit_Offset);
+            std::transform(names.begin(),
+                           names.begin() + mvlc::trigger_io::NIM_IO_Count,
+                           ioCfg.l3.unitNames.begin() + ioCfg.l3.NIM_IO_Unit_Offset,
+                           [] (const QString &s) { return s.toStdString(); });
 
             auto settings = dia->getSettings();
             size_t count = std::min(static_cast<size_t>(settings.size()), ioCfg.l0.ioNIM.size());
@@ -478,12 +489,13 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
         // read names stored in the Level0 structure
         QStringList names;
 
-        std::copy_n(ioCfg.l0.unitNames.begin() + ioCfg.l0.IRQ_Inputs_Offset,
-                    trigger_io::Level0::IRQ_Inputs_Count,
-                    std::back_inserter(names));
+        std::transform(ioCfg.l0.unitNames.begin() + ioCfg.l0.IRQ_Inputs_Offset,
+                       ioCfg.l0.unitNames.begin() + ioCfg.l0.IRQ_Inputs_Offset + mvlc::trigger_io::Level0::IRQ_Inputs_Count,
+                       std::back_inserter(names),
+                       [] (const std::string &s) { return QString::fromStdString(s); });
 
         // settings stored in Level0
-        QVector<trigger_io::IO> settings;
+        QVector<mvlc::trigger_io::IO> settings;
         std::copy(ioCfg.l0.ioIRQ.begin(), ioCfg.l0.ioIRQ.end(), std::back_inserter(settings));
 
         auto dialog = std::make_unique<IRQ_Inputs_SettingsDialog>(names, settings, this);
@@ -493,9 +505,10 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             auto names = dia->getNames();
 
             // Copy names to L0
-            std::copy_n(names.begin(),
-                        trigger_io::Level0::IRQ_Inputs_Count,
-                        ioCfg.l0.unitNames.begin() + ioCfg.l0.IRQ_Inputs_Offset);
+            std::transform(names.begin(),
+                           names.begin() + mvlc::trigger_io::Level0::IRQ_Inputs_Count,
+                           ioCfg.l0.unitNames.begin() + ioCfg.l0.IRQ_Inputs_Offset,
+                           [] (const QString &s) { return s.toStdString(); });
 
             auto settings = dia->getSettings();
             size_t count = std::min(static_cast<size_t>(settings.size()), ioCfg.l0.ioIRQ.size());
@@ -522,40 +535,42 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
         // read names stored in the Level0 structure
         QStringList names;
 
-        std::copy_n(ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset,
-                    trigger_io::NIM_IO_Count,
-                    std::back_inserter(names));
+        std::transform(ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset,
+                       ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset + mvlc::trigger_io::NIM_IO_Count,
+                       std::back_inserter(names),
+                       [] (const std::string &s) { return QString::fromStdString(s); });
 
         // copy the default names from Level0 structure
         QStringList defaultNames;
-        std::copy_n(Level0::DefaultUnitNames.begin() + ioCfg.l0.NIM_IO_Offset,
-                    trigger_io::NIM_IO_Count,
-                    std::back_inserter(defaultNames));
+        std::transform(Level0::DefaultUnitNames.begin() + ioCfg.l0.NIM_IO_Offset,
+                       Level0::DefaultUnitNames.begin() + ioCfg.l0.NIM_IO_Offset + mvlc::trigger_io::NIM_IO_Count,
+                       std::back_inserter(defaultNames),
+                       [] (const std::string &s) { return QString::fromStdString(s); });
 
         // settings stored in Level3
-        QVector<trigger_io::IO> settings;
+        QVector<mvlc::trigger_io::IO> settings;
         std::copy(ioCfg.l3.ioNIM.begin(), ioCfg.l3.ioNIM.end(),
                   std::back_inserter(settings));
 
         // build a vector of available input names for each NIM IO
         QVector<QStringList> inputChoiceNameLists;
 
-        for (size_t io = 0; io < trigger_io::NIM_IO_Count; io++)
+        for (size_t io = 0; io < mvlc::trigger_io::NIM_IO_Count; io++)
         {
-            int idx = io + trigger_io::Level3::NIM_IO_Unit_Offset;
+            int idx = io + mvlc::trigger_io::Level3::NIM_IO_Unit_Offset;
             const auto &choiceList = ioCfg.l3.DynamicInputChoiceLists[idx][0];
 
             QStringList nameList;
 
             for (const auto &address: choiceList)
-                nameList.push_back(lookup_name(ioCfg, address));
+                nameList.push_back(lookup_name(ioCfg, address).c_str());
 
             inputChoiceNameLists.push_back(nameList);
         }
 
         auto connections = to_qvector(
             ioCfg.l3.connections.begin() + ioCfg.l3.NIM_IO_Unit_Offset,
-            ioCfg.l3.connections.begin() + ioCfg.l3.NIM_IO_Unit_Offset + trigger_io::NIM_IO_Count);
+            ioCfg.l3.connections.begin() + ioCfg.l3.NIM_IO_Unit_Offset + mvlc::trigger_io::NIM_IO_Count);
 
         auto dialog = std::make_unique<NIM_IO_SettingsDialog>(names, defaultNames, settings, inputChoiceNameLists, connections, this);
 
@@ -564,14 +579,16 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             auto names = dia->getNames();
 
             // Copy names to L0
-            std::copy_n(names.begin(),
-                        trigger_io::NIM_IO_Count,
-                        ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset);
+            std::transform(names.begin(),
+                           names.begin() + mvlc::trigger_io::NIM_IO_Count,
+                           ioCfg.l0.unitNames.begin() + ioCfg.l0.NIM_IO_Offset,
+                           [] (const QString &s) { return s.toStdString(); });
 
             // Copy names to L3
-            std::copy_n(names.begin(),
-                        trigger_io::NIM_IO_Count,
-                        ioCfg.l3.unitNames.begin() + ioCfg.l3.NIM_IO_Unit_Offset);
+            std::transform(names.begin(),
+                           names.begin() + mvlc::trigger_io::NIM_IO_Count,
+                           ioCfg.l3.unitNames.begin() + ioCfg.l3.NIM_IO_Unit_Offset,
+                           [] (const QString &s) { return s.toStdString(); });
 
             auto settings = dia->getSettings();
             {
@@ -585,7 +602,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             {
                 auto connections = dia->getConnections();
                 auto count = std::min(static_cast<size_t>(connections.size()),
-                                      trigger_io::NIM_IO_Count);
+                                      mvlc::trigger_io::NIM_IO_Count);
                 std::copy_n(
                     connections.begin(), count,
                     ioCfg.l3.connections.begin() + ioCfg.l3.NIM_IO_Unit_Offset);
@@ -609,34 +626,35 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
 
         QStringList names;
 
-        std::copy_n(ioCfg.l3.unitNames.begin() + ioCfg.l3.ECL_Unit_Offset,
-                    trigger_io::ECL_OUT_Count,
-                    std::back_inserter(names));
+        std::transform(ioCfg.l3.unitNames.begin() + ioCfg.l3.ECL_Unit_Offset,
+                       ioCfg.l3.unitNames.begin() + ioCfg.l3.ECL_Unit_Offset + mvlc::trigger_io::ECL_OUT_Count,
+                       std::back_inserter(names),
+                       [] (const std::string &s) { return QString::fromStdString(s); });
 
         // settings stored in Level3
-        QVector<trigger_io::IO> settings;
+        QVector<mvlc::trigger_io::IO> settings;
         std::copy(ioCfg.l3.ioECL.begin(), ioCfg.l3.ioECL.end(),
                   std::back_inserter(settings));
 
         // build a vector of available input names for each ECL IO
         QVector<QStringList> inputChoiceNameLists;
 
-        for (size_t io = 0; io < trigger_io::ECL_OUT_Count; io++)
+        for (size_t io = 0; io < mvlc::trigger_io::ECL_OUT_Count; io++)
         {
-            int idx = io + trigger_io::Level3::ECL_Unit_Offset;
+            int idx = io + mvlc::trigger_io::Level3::ECL_Unit_Offset;
             const auto &choiceList = ioCfg.l3.DynamicInputChoiceLists[idx][0];
 
             QStringList nameList;
 
             for (const auto &address: choiceList)
-                nameList.push_back(lookup_name(ioCfg, address));
+                nameList.push_back(lookup_name(ioCfg, address).c_str());
 
             inputChoiceNameLists.push_back(nameList);
         }
 
         auto connections = to_qvector(
             ioCfg.l3.connections.begin() + ioCfg.l3.ECL_Unit_Offset,
-            ioCfg.l3.connections.begin() + ioCfg.l3.ECL_Unit_Offset + trigger_io::ECL_OUT_Count);
+            ioCfg.l3.connections.begin() + ioCfg.l3.ECL_Unit_Offset + mvlc::trigger_io::ECL_OUT_Count);
 
         auto dialog = std::make_unique<ECL_SettingsDialog>(names, settings, connections, inputChoiceNameLists, this);
 
@@ -645,9 +663,10 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             auto names = dia->getNames();
 
             // Copy names to L3
-            std::copy_n(names.begin(),
-                        trigger_io::ECL_OUT_Count,
-                        ioCfg.l3.unitNames.begin() + ioCfg.l3.ECL_Unit_Offset);
+            std::transform(names.begin(),
+                           names.begin() + mvlc::trigger_io::ECL_OUT_Count,
+                           ioCfg.l3.unitNames.begin() + ioCfg.l3.ECL_Unit_Offset,
+                           [] (const QString &s) { return s.toStdString(); });
 
             auto settings = dia->getSettings();
             {
@@ -661,7 +680,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
             {
                 auto connections = dia->getConnections();
                 auto count = std::min(static_cast<size_t>(connections.size()),
-                                      trigger_io::ECL_OUT_Count);
+                                      mvlc::trigger_io::ECL_OUT_Count);
                 std::copy_n(
                     connections.begin(), count,
                     ioCfg.l3.connections.begin() + ioCfg.l3.ECL_Unit_Offset);
@@ -685,9 +704,9 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
         QVector<QVector<QStringList>> inputChoiceNameLists;
 
         // FIXME: Counter latch input hacks all the way
-        for (int unit = 0; unit < ioCfg.l3.unitNames.size()-1; unit++)
+        for (size_t unit = 0; unit < ioCfg.l3.unitNames.size()-1; unit++)
         {
-            if (Level3::CountersOffset <= static_cast<unsigned>(unit)
+            if (mvlc::trigger_io::Level3::CountersOffset <= static_cast<unsigned>(unit)
                 && static_cast<unsigned>(unit) < Level3::CountersOffset + Level3::CountersCount)
             {
                 QVector<QStringList> foo;
@@ -697,7 +716,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
                     const auto &choiceList = ioCfg.l3.DynamicInputChoiceLists[unit][input];
                     QStringList nameList;
                     for (const auto &address: choiceList)
-                        nameList.push_back(lookup_name(ioCfg, address));
+                        nameList.push_back(lookup_name(ioCfg, address).c_str());
 
                     foo.push_back(nameList);
                 }
@@ -709,7 +728,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
                 const auto &choiceList = ioCfg.l3.DynamicInputChoiceLists[unit][0];
                 QStringList nameList;
                 for (const auto &address: choiceList)
-                    nameList.push_back(lookup_name(ioCfg, address));
+                    nameList.push_back(lookup_name(ioCfg, address).c_str());
 
                 inputChoiceNameLists.push_back({nameList});
             }
@@ -807,7 +826,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
         QSL("Default Setup"), this, [this] ()
         {
             auto scriptContents = vats::read_default_mvlc_trigger_io_script().contents;
-            d->ioCfg = parse_trigger_io_script_text(scriptContents);
+            d->ioCfg = mvlc::trigger_io::parse_trigger_io_vmescript(scriptContents.toStdString());
             setupModified();
         });
 
@@ -842,7 +861,7 @@ MVLCTriggerIOEditor::MVLCTriggerIOEditor(
         {
             d->scriptConfig->setScriptContents(d->initialScriptContents);
             d->scriptConfig->setModified(false);
-            d->ioCfg = parse_trigger_io_script_text(d->scriptConfig->getScriptContents());
+            d->ioCfg = mvlc::trigger_io::parse_trigger_io_vmescript(d->scriptConfig->getScriptContents().toStdString());
             setupModified();
         });
 
@@ -988,13 +1007,13 @@ void MVLCTriggerIOEditor::regenerateScript()
 {
     qDebug() << __PRETTY_FUNCTION__;
     auto &ioCfg = d->ioCfg;
-    auto scriptText = generate_trigger_io_script_text(ioCfg);
-    d->scriptConfig->setScriptContents(scriptText);
+    auto scriptText = mvlc::trigger_io::generate_trigger_io_vmescript(ioCfg);
+    d->scriptConfig->setScriptContents(QString::fromStdString(scriptText));
 
 #ifndef NDEBUG
     {
-        auto tmpIoCfg = parse_trigger_io_script_text(d->scriptConfig->getScriptContents());
-        auto tmpText = generate_trigger_io_script_text(tmpIoCfg);
+        auto tmpIoCfg = mvlc::trigger_io::parse_trigger_io_vmescript(d->scriptConfig->getScriptContents().toStdString());
+        auto tmpText = mvlc::trigger_io::generate_trigger_io_vmescript(tmpIoCfg);
         assert(scriptText == tmpText);
     }
 #endif
@@ -1005,7 +1024,7 @@ void MVLCTriggerIOEditor::reload()
     qDebug() << __PRETTY_FUNCTION__;
     try
     {
-        d->ioCfg = parse_trigger_io_script_text(d->scriptConfig->getScriptContents());
+        d->ioCfg = mvlc::trigger_io::parse_trigger_io_vmescript(d->scriptConfig->getScriptContents().toStdString());
     }
     catch(const vme_script::ParseError &e)
     {

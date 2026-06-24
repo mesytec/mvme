@@ -36,7 +36,7 @@
 #include "mesytec_diagnostics.h"
 #include "mvlc/mvlc_dev_gui.h"
 #include "mvlc/mvlc_trigger_io_editor.h"
-#include "mvlc/mvlc_trigger_io_script.h"
+#include "mvlc/mvlc_trigger_io_util.h"
 #include "mvlc/mvlc_vme_controller.h"
 #include "mvlc/scanbus_ui.hpp"
 #include "mvlc/vmeconfig_to_crateconfig.h"

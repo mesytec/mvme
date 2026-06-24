@@ -25,7 +25,6 @@
 #include <mesytec-mvlc/mvlc_command_builders.h>
 #include <mesytec-mvlc/mvlc_listfile_zip.h>
 #include "mvlc/mvlc_qt_object.h"
-#include "mvlc/mvlc_trigger_io.h"
 #include "vme_config.h"
 
 namespace mesytec

@@ -31,7 +31,7 @@
 
 #include <QGraphicsRectItem>
 
-#include "mvlc/mvlc_trigger_io.h"
+#include <mesytec-mvlc/mesytec-mvlc.h>
 #include "util/qt_layouts.h"
 #include "graphicsview_util.h"
 
@@ -42,7 +42,8 @@ namespace mvme_mvlc
 namespace trigger_io_config
 {
 
-using namespace trigger_io;
+using namespace mvlc;
+using namespace mvlc::trigger_io;
 
 namespace gfx
 {
