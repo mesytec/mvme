@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
             }
         });
 #endif
-    auto trigIO = mvme_mvlc::trigger_io::load_default_trigger_io();
+    auto trigIO = mvlc::trigger_io::load_default_trigger_io();
     mvme_mvlc::trigger_io::TraceSelectWidget traceSelectWidget;
     traceSelectWidget.setTriggerIO(trigIO);
     traceSelectWidget.show();

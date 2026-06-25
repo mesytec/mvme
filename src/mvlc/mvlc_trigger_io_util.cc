@@ -104,10 +104,4 @@ QTextStream &print_front_panel_io_table(QTextStream &out, const TriggerIO &ioCfg
     return out;
 }
 
-mesytec::mvlc::trigger_io::TriggerIO load_default_trigger_io()
-{
-    auto scriptContents = vats::read_default_mvlc_trigger_io_script().contents;
-    return mesytec::mvlc::trigger_io::parse_trigger_io_vmescript(scriptContents.toStdString());
-}
-
 }
