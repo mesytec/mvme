@@ -21,6 +21,7 @@
 #ifndef __MVME_MVLC_TRIGGER_IO_UTIL_H__
 #define __MVME_MVLC_TRIGGER_IO_UTIL_H__
 
+#include "libmvme_export.h"
 #include <QTextStream>
 #include <mesytec-mvlc/mesytec-mvlc.h>
 
@@ -29,8 +30,12 @@ namespace mesytec::mvme_mvlc::trigger_io
 
 static const QString MetaTagMVLCTriggerIO = "mvlc_trigger_io";
 
-QTextStream &print_front_panel_io_table(QTextStream &out, const mesytec::mvlc::trigger_io::TriggerIO &ioCfg);
+LIBMVME_EXPORT QTextStream &
+print_front_panel_io_table(QTextStream &out, const mesytec::mvlc::trigger_io::TriggerIO &ioCfg);
 
-}
+// Loads the default setup from the mvme templates directory.
+LIBMVME_EXPORT mesytec::mvlc::trigger_io::TriggerIO load_default_trigger_io();
+
+} // namespace mesytec::mvme_mvlc::trigger_io
 
 #endif /* __MVME_MVLC_TRIGGER_IO_UTIL_H__ */

@@ -21,6 +21,7 @@
 #include <mesytec-mvlc/mesytec-mvlc.h>
 #include "mvlc_trigger_io_util.h"
 #include "util/qt_str.h"
+#include "template_system.h"
 
 using namespace mesytec::mvlc::trigger_io;
 
@@ -101,6 +102,12 @@ QTextStream &print_front_panel_io_table(QTextStream &out, const TriggerIO &ioCfg
     }
 
     return out;
+}
+
+mesytec::mvlc::trigger_io::TriggerIO load_default_trigger_io()
+{
+    auto scriptContents = vats::read_default_mvlc_trigger_io_script().contents;
+    return mesytec::mvlc::trigger_io::parse_trigger_io_vmescript(scriptContents.toStdString());
 }
 
 }

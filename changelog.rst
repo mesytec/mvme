@@ -4,6 +4,13 @@
 Changelog
 ##################################################
 
+Version 1.20-rc
+--------------------------------------------------
+
+* Internal rework: the core of the MVLC Trigger/IO abstractions now lives in the
+  mesytec-mvlc library.
+
+
 Version 1.19.1
 --------------------------------------------------
 

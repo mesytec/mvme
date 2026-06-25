@@ -32,7 +32,6 @@
 #include <QDebug>
 
 #include "mvlc/mvlc_trigger_io_editor.h"
-#include "mvlc/mvlc_trigger_io.h"
 #include "mvme_session.h"
 #include "qt_util.h"
 

@@ -1,8 +1,8 @@
 #include <mesytec-mvlc/mesytec-mvlc.h>
 #include <QCoreApplication>
 
+#include <mesytec-mvlc/mvlc_trigger_io_serialize_vmescript.h>
 #include "mvlc_daq.h"
-#include "mvlc_trigger_io_script.h"
 #include "mvlc_util.h"
 #include "mvme_session.h"
 #include "vmeconfig_to_crateconfig.h"

@@ -11,19 +11,19 @@
 #include <limits>
 #include <qnamespace.h>
 #include <random>
+#include <mesytec-mvlc/mesytec-mvlc.h>
 
 #include "mvlc/trigger_io_dso.h"
 #include "mvlc/trigger_io_dso_sim_ui.h"
 #include "mvlc/trigger_io_dso_sim_ui_p.h"
 #include "mvlc/trigger_io_dso_plot_widget.h"
 #include "mvlc/trigger_io_sim.h"
-#include "mvlc/mvlc_trigger_io_script.h"
+#include "mvlc/mvlc_trigger_io_util.h"
 #include "mvme_qwt.h"
 #include "mvme_session.h"
 #include "qt_util.h"
 
-using namespace mesytec::mvme_mvlc;
-using namespace trigger_io;
+using namespace mesytec;
 using namespace std::chrono_literals;
 using std::cout;
 using std::endl;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        auto trigIO = parse_trigger_io_script_text(QString::fromUtf8(inFile.readAll()));
+        auto trigIO = mesytec::mvlc::trigger_io::parse_trigger_io_vmescript(inFile.readAll().toStdString());
         lut = trigIO.l2.luts[0];
     }
 
@@ -74,20 +74,20 @@ int main(int argc, char *argv[])
 // * Sampled traces:
 //  - NIM0..NIM13
 //  - More things to come
-// 
+//
 // * All other traces are simulated
-// 
+//
 // * L0 internal side
 //   - NIM0..NIM13 simulated internal side (GG sim)
 //   - L0 utils (timers, sysclock, ...)
-// 
+//
 // * L1
 //   - LUT0..5
 //     - input0..5
 //     - output0..3
 //   Note: L1.LUT0.in0 is the same as the internal side of L0.NIM0. This is a
 //   static connection.
-// 
+//
 // * L2
 //   - LUT0..1
 //     - input0..5, strobeIn
@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
             }
         });
 #endif
-    auto trigIO = load_default_trigger_io();
-    TraceSelectWidget traceSelectWidget;
+    auto trigIO = mvme_mvlc::trigger_io::load_default_trigger_io();
+    mvme_mvlc::trigger_io::TraceSelectWidget traceSelectWidget;
     traceSelectWidget.setTriggerIO(trigIO);
     traceSelectWidget.show();
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    DSOSetup dsoSetup = {};
+    mvme_mvlc::trigger_io::DSOSetup dsoSetup = {};
     dsoSetup.preTriggerTime = 42;
     dsoSetup.postTriggerTime = 1337;
 
@@ -168,6 +168,7 @@ int main(int argc, char *argv[])
 
     std::chrono::milliseconds interval(23);
 
+    using DSOControlWidget = mvme_mvlc::trigger_io::DSOControlWidget;
 
     DSOControlWidget dsoControlWidget;
     dsoControlWidget.setDSOSettings(dsoSetup.preTriggerTime, dsoSetup.postTriggerTime, interval);

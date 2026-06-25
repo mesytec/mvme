@@ -204,7 +204,7 @@ struct ListFileOutputInfo
 
     u32 flags = UseTimestamp;
 
-    size_t splitSize = Gigabytes(1);
+    size_t splitSize = ::Gigabytes(1);
     std::chrono::seconds splitTime = std::chrono::seconds(3600);
 
     QVariantMap options; // Additional format-dependent options can be stored here.

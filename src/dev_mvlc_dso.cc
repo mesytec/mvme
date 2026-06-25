@@ -14,14 +14,13 @@
 #include "mvme_qwt.h"
 
 using namespace mesytec::mvme_mvlc;
+using namespace mesytec::mvme_mvlc::trigger_io;
 using namespace std::chrono_literals;
 using std::cout;
 using std::endl;
 
 int main(int argc, char *argv[])
 {
-    using namespace trigger_io;
-
     QApplication app(argc, argv);
 
 #if 0
