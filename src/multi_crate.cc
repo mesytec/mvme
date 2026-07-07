@@ -1017,6 +1017,11 @@ const ListfileReplayHandle &MinimalAnalysisServiceProvider::getReplayFileHandle(
     return listfileReplayHandle_;
 }
 
+void MinimalAnalysisServiceProvider::closeReplayFileHandle()
+{
+    listfileReplayHandle_ = {};
+}
+
 DAQStats MinimalAnalysisServiceProvider::getDAQStats() const
 {
     return daqStats_.copy();

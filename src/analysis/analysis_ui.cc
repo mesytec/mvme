@@ -458,6 +458,7 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
     assert(m_serviceProvider->getGlobalMode() == GlobalMode::ListFile);
     if (m_serviceProvider->getGlobalMode() != GlobalMode::ListFile)
         return;
+
     const auto &rfh = m_serviceProvider->getReplayFileHandle();
 
     QMessageBox msgBox(m_q);
@@ -535,6 +536,9 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
         op.contents = {rfh.analysisBlob.begin(), rfh.analysisBlob.end()};
         updateConfig.ops.push_back(op);
     }
+
+    // Close the currently open listfile to allow the rename operation to succeed on Windows.
+    m_serviceProvider->closeReplayFileHandle();
 
     // Start the operation in a thread, then exec() the dialog so we stay in this method.
     auto fResult = QtConcurrent::run(update_zip_archive, updateConfig);

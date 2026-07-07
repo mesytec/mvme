@@ -59,6 +59,7 @@ class MVMEContextServiceProvider: public AnalysisServiceProvider
 
         GlobalMode getGlobalMode() override; // DAQ or Listfile
         const ListfileReplayHandle &getReplayFileHandle() const override;
+        void closeReplayFileHandle() override;
 
         DAQStats getDAQStats() const override;
         RunInfo getRunInfo() const override;

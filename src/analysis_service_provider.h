@@ -101,6 +101,7 @@ class LIBMVME_EXPORT AnalysisServiceProvider: public QObject
         virtual GlobalMode getGlobalMode() = 0; // DAQ or Listfile
         // TODO: make this Protected<ListfileReplayHandle> or return a copy
         virtual const ListfileReplayHandle &getReplayFileHandle() const = 0;
+        virtual void closeReplayFileHandle() = 0;
 
 
         virtual DAQStats getDAQStats() const = 0;

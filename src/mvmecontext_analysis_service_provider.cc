@@ -155,6 +155,10 @@ const ListfileReplayHandle &MVMEContextServiceProvider::getReplayFileHandle() co
     return ctx_->getReplayFileHandle();
 }
 
+void MVMEContextServiceProvider::closeReplayFileHandle()
+{
+    ctx_->closeReplayFileHandle();
+}
 
 DAQStats MVMEContextServiceProvider::getDAQStats() const
 {
