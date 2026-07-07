@@ -49,6 +49,7 @@
 #include <QWidgetAction>
 
 #include <mesytec-mvlc/mvlc_listfile_zip.h>
+#include <filesystem>
 
 #include "analysis/a2_adapter.h"
 #include "analysis/analysis_info_widget.h"
@@ -504,7 +505,7 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
         existingFilenames = rfh.archive->getFileNameList();
 
     ZipUpdateConfig updateConfig;
-    updateConfig.input_zip_path = rfh.inputFilename.toStdString();
+    updateConfig.input_zip_path = std::filesystem::path(rfh.inputFilename.toStdString()).make_preferred().string();
     updateConfig.on_progress = progress_callback;
     updateConfig.is_cancelled = is_cancelled_callback;
 
