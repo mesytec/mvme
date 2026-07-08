@@ -459,7 +459,11 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
     if (m_serviceProvider->getGlobalMode() != GlobalMode::ListFile)
         return;
 
-    const auto &rfh = m_serviceProvider->getReplayFileHandle();
+    using OptReplayHandle = std::optional<std::reference_wrapper<const ListfileReplayHandle>>;
+    OptReplayHandle rfh = m_serviceProvider->getReplayFileHandle();
+
+    if (!rfh)
+        return;
 
     QMessageBox msgBox(m_q);
     msgBox.setWindowTitle(QSL("Save analysis config to listfile"));
@@ -467,7 +471,7 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
     msgBox.setText(QSL("This will update the analysis config inside %1.\n\n"
                           "The original analysis config will be saved as \"analysis.prev.analysis\" in the archive.\n\n"
                           "Do you want to continue?")
-                     .arg(rfh.inputFilename));
+                     .arg(rfh->get().inputFilename));
 
     msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
     msgBox.setDefaultButton(QMessageBox::No);
@@ -478,35 +482,60 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
     using namespace mesytec::mvlc::listfile;
 
     QProgressDialog progressDialog;
+    progressDialog.setAutoClose(false);
     progressDialog.setWindowTitle(QSL("Updating listfile..."));
     QFutureWatcher<ZipUpdateResult> watcher;
+    std::atomic<bool> cancelled = false;
 
-    //QObject::connect(&watcher, &QFutureWatcher<ZipUpdateResult>::started,
-    //        &progressDialog, &QDialog::show);
+    // Important: callbacks are called from the thread running update_zip_archive()!
+    // Need to use queued connections or other methods to make this stuff thread-safe.
 
     QObject::connect(&watcher, &QFutureWatcher<ZipUpdateResult>::finished,
             &progressDialog, &QDialog::close);
 
+    QObject::connect(&progressDialog, &QProgressDialog::canceled, m_q, [&] {
+        cancelled = true;
+    });
+
     auto progress_callback = [&] (const ProgressEvent &pev)
     {
+        // Queued connection to make this thread-safe.
         QMetaObject::invokeMethod(&progressDialog, [&, pev] {
+            spdlog::trace("progress_callback: step={}, progress={}, bytes_copied={}, bytes_total={}",
+                         pev.step, pev.progress,
+                         pev.bytes_copied.has_value() ? std::to_string(*pev.bytes_copied) : "n/a",
+                         pev.bytes_total.has_value() ? std::to_string(*pev.bytes_total) : "n/a");
+
             progressDialog.setLabelText(QString::fromStdString(pev.step));
-            progressDialog.setValue(pev.progress * 100);
+
+            if (!pev.bytes_copied.has_value() && !pev.bytes_total.has_value())
+            {
+                progressDialog.setMinimum(0);
+                progressDialog.setMaximum(0);
+            }
+            else if (pev.bytes_copied.has_value() && pev.bytes_total.has_value())
+            {
+                progressDialog.setMinimum(0);
+                progressDialog.setMaximum(100);
+                progressDialog.setValue(pev.progress * 100);
+            }
+
         }, Qt::QueuedConnection);
     };
 
     auto is_cancelled_callback = [&]
     {
-        return progressDialog.wasCanceled();
+        // This is thread-safe.
+        return cancelled.load();
     };
 
     QStringList existingFilenames;
 
-    if (rfh.archive)
-        existingFilenames = rfh.archive->getFileNameList();
+    if (rfh->get().archive)
+        existingFilenames = rfh->get().archive->getFileNameList();
 
     ZipUpdateConfig updateConfig;
-    updateConfig.input_zip_path = std::filesystem::path(rfh.inputFilename.toStdString()).make_preferred().string();
+    updateConfig.input_zip_path = std::filesystem::path(rfh->get().inputFilename.toStdString()).make_preferred().string();
     updateConfig.on_progress = progress_callback;
     updateConfig.is_cancelled = is_cancelled_callback;
 
@@ -526,30 +555,42 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
     {
         UpdateOperation op;
         op.filename = "analysis.prev.analysis";
-        op.contents = {rfh.analysisBlob.begin(), rfh.analysisBlob.end()};
+        op.contents = {rfh->get().analysisBlob.begin(), rfh->get().analysisBlob.end()};
         updateConfig.ops.push_back(op);
     }
     else // Add the original analysis config as "analysis.prev.analysis".
     {
         AddOperation op;
         op.filename = "analysis.prev.analysis";
-        op.contents = {rfh.analysisBlob.begin(), rfh.analysisBlob.end()};
+        op.contents = {rfh->get().analysisBlob.begin(), rfh->get().analysisBlob.end()};
         updateConfig.ops.push_back(op);
     }
 
     // Close the currently open listfile to allow the rename operation to succeed on Windows.
+    // Distant side effects make for exciting code ;)
     m_serviceProvider->closeReplayFileHandle();
+    rfh = std::nullopt;
 
     // Start the operation in a thread, then exec() the dialog so we stay in this method.
+    spdlog::info("Starting update_zip_archive() in a thread");
     auto fResult = QtConcurrent::run(update_zip_archive, updateConfig);
     watcher.setFuture(fResult);
+    spdlog::info("progressDialog.exec() called");
     progressDialog.exec();
+    spdlog::info("progressDialog.exec() returned, watcher.isFinished()={}, future.isFinished()={}", watcher.isFinished(), fResult.isFinished());
+
     auto result = fResult.result();
+    spdlog::info("update_zip_archive() finished, result: {}", result.error_message());
+
+    progressDialog.close();
+    QApplication::processEvents();
 
     if (result.was_cancelled())
     {
         QMessageBox::information(m_q, QSL("Save analysis config to listfile"),
                                  QSL("Operation was cancelled."));
+        // Reopen the (now updated) listfile we closed earlier. The in-memory analysis is kept unmodified.
+        m_serviceProvider->openListfile(updateConfig.input_zip_path.c_str(), OpenListfileOptions{.replayAllParts = true});
         return;
     }
 
@@ -563,16 +604,21 @@ void AnalysisWidgetPrivate::actionSaveToListfile()
         }
 
         QMessageBox::information(m_q, QSL("Save analysis config to listfile"),
-                                 QSL("Successfully updated the analysis config in the listfile.\n\n"
-                                     "Operations performed:\n%1")
+                                 QSL("Successfully updated %1 .\n\n"
+                                     "Operations performed:\n%2")
+                                 .arg(updateConfig.input_zip_path.c_str())
                                  .arg(opsDescriptions));
     }
     else
     {
         QMessageBox::critical(m_q, QSL("Save analysis config to listfile"),
-                              QSL("Failed to update the analysis config in the listfile:\n%1")
+                              QSL("Failed to update %1:\n%2")
+                              .arg(updateConfig.input_zip_path.c_str())
                               .arg(QString::fromStdString(result.error_message())));
     }
+
+    // Reopen the (now updated) listfile we closed earlier. The in-memory analysis is kept unmodified.
+    m_serviceProvider->openListfile(updateConfig.input_zip_path.c_str(), OpenListfileOptions{.replayAllParts = true});
 }
 
 void AnalysisWidgetPrivate::actionClearHistograms()
