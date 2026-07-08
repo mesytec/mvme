@@ -4,10 +4,29 @@
 Changelog
 ##################################################
 
-Version 1.19.1
+Version 1.20.0
 --------------------------------------------------
 
-* event_builder: suppress completely empty output events. Fixes weird looking counts in the analysis window.
+* new feature: Ability to update the analysis config stored in listfiles.
+
+  Use case: the baseline analysis config at DAQ time is stored in the listfile
+  zip archive at the end of a run. During offline analysis changes are made to
+  the analysis config. At some point these changes should be saved to the
+  listfile, so that subsequent replays automatically use the updated analysis
+  setup.
+
+  Use 'Save to Listfile' from the toolbar in the analysis window to start the
+  update process.
+
+  The update is done by writing a new listfile zip archive containing the
+  original listmode data and the updated analysis config. The original file is
+  atomically replaced with the updated file to minimize the risk of data loss.
+
+* event_builder: Suppress completely empty output events. Fixes weird looking
+  counts in the analysis window.
+
+* internal: The non-gui MVLC Trigger/IO abstractions now live in the
+  mesytec-mvlc driver.
 
 Version 1.19.0
 --------------------------------------------------
