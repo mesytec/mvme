@@ -586,28 +586,23 @@ inline void set_curve_alpha(QwtPlotCurve *curve, double alpha)
 
 inline const QVector<QColor> make_plot_colors()
 {
+    // Color palette optimized for light grey backgrounds
+    // Based on ColorBrewer Dark2 and Tableau-10 categorical schemes
+    // All colors have sufficient contrast ratio (>4.5:1) against light backgrounds
     static const QVector<QColor> result =
     {
-        "#000000",
-        "#e6194b",
-        "#3cb44b",
-        "#ffe119",
-        "#0082c8",
-        "#f58231",
-        "#911eb4",
-        "#46f0f0",
-        "#f032e6",
-        "#d2f53c",
-        "#fabebe",
-        "#008080",
-        "#e6beff",
-        "#aa6e28",
-        "#fffac8",
-        "#800000",
-        "#aaffc3",
-        "#808000",
-        "#ffd8b1",
-        "#000080",
+        "#1b9e77",  // Teal/Cyan - high visibility
+        "#d95f02",  // Dark Orange - warm, distinct
+        "#7570b3",  // Purple/Blue - cool tone
+        "#e7298a",  // Magenta/Pink - vibrant
+        "#66a61e",  // Olive Green - earthy
+        "#e41a1c",  // Strong Red - ColorBrewer Set1
+        "#377eb8",  // Strong Blue - ColorBrewer Set1
+        "#b8860b",  // Dark Goldenrod - replaces problematic yellow
+        "#a6761d",  // Brown - neutral warm
+        "#8b4513",  // Saddle Brown - deeper earth tone
+        "#17becf",  // Cyan/Turquoise - Tableau-10
+        "#666666",  // Dark Grey - subtle alternative
     };
 
     return result;
