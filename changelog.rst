@@ -25,6 +25,8 @@ Version 1.20.0
 * event_builder: Suppress completely empty output events. Fixes weird looking
   counts in the analysis window.
 
+* analysis waveforms: change the color table to have more contrast.
+
 * internal: The non-gui MVLC Trigger/IO abstractions now live in the
   mesytec-mvlc driver.
 
