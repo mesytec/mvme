@@ -2198,9 +2198,7 @@ void AggregateOps::beginRun(const RunInfo &, Logger)
             case Op_Multiplicity:
                 {
                     lowerBound = 0.0;
-                    // add one so that attached histograms can display the full
-                    // multiplicty value
-                    upperBound = in.size() + 1;
+                    upperBound = in.size();
                 } break;
 
             case Op_Sigma: // FIXME: sigma bounds
