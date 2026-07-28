@@ -104,6 +104,7 @@ class LIBMVME_EXPORT Histo2DWidget: public histo_ui::IPlotWidget
         bool zAxisIsLin() const;
         QwtLinearColorMap *getColorMap() const;
         void updateCursorInfoLabel();
+        void doProjection(Qt::Axis axis);
         void doXProjection();
         void doYProjection();
 
