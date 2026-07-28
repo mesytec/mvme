@@ -320,14 +320,14 @@ Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis,
     }
     else if (axis == Qt::YAxis)
     {
-        projBinning  = histos[0]->getAxisBinning(Qt::YAxis);
+        projBinning  = histos[0]->getAxisBinning(Qt::XAxis);
         otherBinning = xBinning;
 
         for (const auto &histo: histos)
         {
-            projBinning.setBins(std::min(projBinning.getBins(), histo->getAxisBinning(Qt::YAxis).getBins()));
-            projBinning.setMin(std::min(projBinning.getMin(), histo->getAxisBinning(Qt::YAxis).getMin()));
-            projBinning.setMax(std::max(projBinning.getMax(), histo->getAxisBinning(Qt::YAxis).getMax()));
+            projBinning.setBins(std::min(projBinning.getBins(), histo->getAxisBinning(Qt::XAxis).getBins()));
+            projBinning.setMin(std::min(projBinning.getMin(), histo->getAxisBinning(Qt::XAxis).getMin()));
+            projBinning.setMax(std::max(projBinning.getMax(), histo->getAxisBinning(Qt::XAxis).getMax()));
         }
     }
 
@@ -371,11 +371,12 @@ Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis,
         {
             // Note: Cannot sample directly from the source histogram bins as
             // the scaling of that histogram may be different than the
-            // calculated projection binning.
+            // calculated projection binning. Have to use getCounts() instead.
             if (axis == Qt::XAxis)
             {
-                auto lowEdge = projBinning.getBinLowEdge(binJ);
-                value += histos[binI]->getCounts(lowEdge, lowEdge + projBinWidth);
+                // binJ indexes otherBinning (data axis), not projBinning (histo-index axis)
+                auto lowEdge = otherBinning.getBinLowEdge(binJ);
+                value += histos[binI]->getCounts(lowEdge, lowEdge + otherBinning.getBinWidth());
             }
             else
             {
@@ -507,7 +508,7 @@ QRectF snap_to_bin_edges(const AxisBinning &xBinning, const AxisBinning &yBinnin
     result.setTop(top);
     result.setBottom(bot);
 
-    qDebug() << "snap_to_bin_edges: input rect" << rect << "snapped rect" << result;
+    //qDebug() << "snap_to_bin_edges: input rect" << rect << "snapped rect" << result;
 
     return result;
 }
