@@ -4871,7 +4871,6 @@ Analysis::Analysis(QObject *parent)
 
     // generics
     m_objectFactory.registerGeneric<PlotGridView>();
-    m_objectFactory.registerGeneric<HistogramOperation>();
 
 #ifndef QT_NO_DEBUG
     qDebug() << "Registered Sources:   " << m_objectFactory.getSourceNames();
