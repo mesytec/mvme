@@ -83,7 +83,8 @@ static Histo2DStatistics calc_Histo1DSink_combined_stats(const Histo1DSinkPtr &s
     /* Counts: sum of all histo counts
      * Max Z: absolute max value of the histos
      * Coordinates: x = histo#, y = x coordinate of the max value in the histo
-     *
+
+
      * Note: this solution is not perfect. The zoom level is not taken into
      * account. Also histo counts remain after the histos have been cleared
      * via "Clear Histograms". Upon starting a new run the counts are ok
@@ -772,8 +773,8 @@ void Histo2DWidget::replot()
                 //    << ", max=" << visibleYInterval.maxValue();
             }
 
-            qDebug() << __PRETTY_FUNCTION__ << "final visYInterval: min" << visibleYInterval.minValue()
-                    << ", max=" << visibleYInterval.maxValue();
+            //qDebug() << __PRETTY_FUNCTION__ << "final visYInterval: min" << visibleYInterval.minValue()
+            //        << ", max=" << visibleYInterval.maxValue();
         }
 
         m_d->m_plot->setAxisScale(QwtPlot::xBottom,

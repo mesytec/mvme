@@ -392,8 +392,8 @@ struct BasicRasterData: public QwtMatrixRasterData
     virtual void postReplot()
     {
 #ifndef QT_NO_DEBUG
-        qDebug() << __PRETTY_FUNCTION__ << this
-            << "sampled values for last replot: " << m_sampledValuesForLastReplot;
+        //qDebug() << __PRETTY_FUNCTION__ << this
+        //    << "sampled values for last replot: " << m_sampledValuesForLastReplot;
 #endif
     }
 
@@ -470,9 +470,9 @@ struct Histo1DListRasterData: public BasicRasterData
     {
         BasicRasterData::postReplot();
 #ifndef QT_NO_DEBUG
-        qDebug() << __PRETTY_FUNCTION__ << this
-            << "sampled values for last replot: " << m_sampledValuesForLastReplot
-            << ", max y value: " << m_lastReplotMaxY;
+        //qDebug() << __PRETTY_FUNCTION__ << this
+        //    << "sampled values for last replot: " << m_sampledValuesForLastReplot
+        //    << ", max y value: " << m_lastReplotMaxY;
 #endif
     }
 
@@ -498,7 +498,8 @@ struct Histo1DListRasterData: public BasicRasterData
 
     QRectF pixelHint(const QRectF &area) const override
     {
-        qDebug() << __PRETTY_FUNCTION__ << "area =" << area;
+        Q_UNUSED(area);
+        //qDebug() << __PRETTY_FUNCTION__ << "area =" << area;
         return QRectF{};
         double sizeX = 1.0;
         double sizeY = 1.0;
@@ -515,7 +516,7 @@ struct Histo1DListRasterData: public BasicRasterData
             0.0, 0.0, sizeX, sizeY
         };
 
-        qDebug() << __PRETTY_FUNCTION__ << "area =" << area << ">>>>>>" << result;
+        //qDebug() << __PRETTY_FUNCTION__ << "area =" << area << ">>>>>>" << result;
 
         return result;
     }
