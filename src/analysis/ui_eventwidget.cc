@@ -3539,6 +3539,7 @@ void EventWidgetPrivate::doSinkTreeContextMenu(QTreeWidget *tree, QPoint pos, s3
             }
         });
 
+        #if 0 // this is unfinished as of 26/07
         menuNew->addAction(QIcon(":/histo_ops.png"), QSL("New Histogram Operation"), parentMenu,
                            [this, userLevel, destDir]()
                            {
@@ -3557,6 +3558,7 @@ void EventWidgetPrivate::doSinkTreeContextMenu(QTreeWidget *tree, QPoint pos, s3
                                    node->treeWidget()->editItem(node);
                                }
                            });
+        #endif
 
         menuNew->addSeparator();
         menuNew->addAction(
