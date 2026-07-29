@@ -3823,27 +3823,30 @@ void EventWidgetPrivate::doSinkTreeContextMenu(QTreeWidget *tree, QPoint pos, s3
             });
         }
 
+        if (auto op = get_shared_analysis_object<OperatorInterface>(
+                activeNode, DataRole_AnalysisObject))
+        {
+            menu.addSeparator();
+            // Edit Display Operator
+            menu.addAction(QIcon(":/pencil.png"), QSL("Edit"), [=] { editOperator(op); });
+        }
+
+        if (auto obj = get_shared_analysis_object<AnalysisObject>(activeNode, DataRole_AnalysisObject))
+        {
+            menu.addAction(QIcon(QSL(":/document-rename.png")), QSL("Rename"), [activeNode] () {
+                if (auto tw = activeNode->treeWidget())
+                {
+                    tw->editItem(activeNode);
+                }
+            });
+        }
+
         switch (activeNode->type())
         {
             case NodeType_Operator:
             case NodeType_Histo1DSink:
             case NodeType_Histo2DSink:
             case NodeType_Sink:
-                if (auto op = get_shared_analysis_object<OperatorInterface>(
-                        activeNode, DataRole_AnalysisObject))
-                {
-                    menu.addSeparator();
-                    // Edit Display Operator
-                    menu.addAction(QIcon(":/pencil.png"), QSL("Edit"), [=] { editOperator(op); });
-                }
-
-                menu.addAction(QIcon(QSL(":/document-rename.png")), QSL("Rename"), [activeNode] () {
-                    if (auto tw = activeNode->treeWidget())
-                    {
-                        tw->editItem(activeNode);
-                    }
-                });
-
                 if (auto op = get_shared_analysis_object<OperatorInterface>(
                         activeNode, DataRole_AnalysisObject))
                 {
