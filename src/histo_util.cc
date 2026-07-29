@@ -28,6 +28,7 @@
 #include <QFrame>
 #include <QGroupBox>
 #include <QRadioButton>
+#include <QRegularExpression>
 
 const s64 AxisBinning::Underflow;
 const s64 AxisBinning::Overflow;
@@ -284,8 +285,7 @@ std::shared_ptr<Histo1D> make_projection(Histo2D *histo, Qt::Axis axis,
     return result;
 }
 
-/* Creates a projection for a combined view of the given histograms list.
- * Assumes that all histograms in the list have the same x-axis binning!. */
+// Creates a projection for a combined view of the given histograms list.
 // TODO: ResReduction
 Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis,
                            double startX, double endX,
@@ -331,8 +331,8 @@ Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis,
         }
     }
 
-    qDebug() << "projBinning:" << projBinning.getMin() << projBinning.getMax()
-             << "otherBinning:" << otherBinning.getMin() << otherBinning.getMax();
+    //qDebug() << "projBinning:" << projBinning.getMin() << projBinning.getMax()
+    //         << "otherBinning:" << otherBinning.getMin() << otherBinning.getMax();
 
     s64 projStartBin = projBinning.getBinBounded(projStart);
     s64 projEndBin   = projBinning.getBinBounded(projEnd);
@@ -353,10 +353,22 @@ Histo1DPtr make_projection(const Histo1DList &histos, Qt::Axis axis,
 
     auto result = std::make_shared<Histo1D>(nProjBins, projStart, projEnd);
 
-    // FIXME: TODO: set object names, set window title, etc
-    //result->setAxisInfo(Qt::XAxis, histo->getAxisInfo(axis));
-    //result->setObjectName(histo->objectName() + (axis == Qt::XAxis ? QSL(" X") : QSL(" Y")) + QSL(" Projection"));
-    //
+    if (axis == Qt::XAxis)
+    {
+        AxisInfo axisInfo;
+        axisInfo.title = "Histogram #";
+        result->setAxisInfo(Qt::XAxis, axisInfo);
+    }
+    else
+    {
+        result->setAxisInfo(Qt::XAxis, histos[0]->getAxisInfo(Qt::XAxis));
+    }
+
+    auto histoName = histos[0]->objectName();
+    histoName.replace(QRegularExpression(R"(\s*\[\d+\]$)"), QSL("[n]"));
+    result->setObjectName(histoName + (axis == Qt::XAxis ? QSL(" X") : QSL(" Y")) + QSL(" Projection"));
+    result->setTitle(QSL("%1 %2 Projection").arg(histoName).arg(axis == Qt::XAxis ? "X" : "Y"));
+
     u32 destBin = 0;
 
     for (u32 binI = projStartBin;
