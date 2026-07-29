@@ -497,6 +497,11 @@ struct MultiPlotWidget::Private
             asp_->getAnalysis()->addObject(analysisGridView_);
         else
             asp_->getAnalysis()->setModified();
+
+        connect(analysisGridView_.get(), &QObject::objectNameChanged, q, [this] (const QString &newName)
+        {
+            q->setWindowTitle("PlotGrid " + newName);
+        });
     }
 
     void loadView(const std::shared_ptr<PlotGridView> &view)
@@ -528,8 +533,16 @@ struct MultiPlotWidget::Private
         cb_combinedZoom_->setChecked(view->getCombinedZoom());
         actionGauss_->setChecked(view->isGaussEnabled());
 
+        if (analysisGridView_)
+            disconnect(analysisGridView_.get(), &QObject::objectNameChanged, q, nullptr);
+
         q->setWindowTitle("PlotGrid " + view->objectName());
         analysisGridView_ = view;
+
+        connect(analysisGridView_.get(), &QObject::objectNameChanged, q, [this] (const QString &newName)
+        {
+            q->setWindowTitle("PlotGrid " + newName);
+        });
 
         relayout();
         refresh();
