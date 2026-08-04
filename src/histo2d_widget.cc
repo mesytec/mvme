@@ -1087,6 +1087,26 @@ bool Histo2DWidget::zAxisIsLin() const
     return dynamic_cast<QwtLinearScaleEngine *>(m_d->m_plot->axisScaleEngine(QwtPlot::yRight));
 }
 
+QJsonObject Histo2DWidget::getViewState() const
+{
+    QJsonObject s;
+    s["zScaleIndex"] = m_d->m_zScaleCombo->currentIndex();
+    s["zoomRect"]    = rectToJson(m_d->m_zoomer->zoomRect());
+    return s;
+}
+
+void Histo2DWidget::setViewState(const QJsonObject &state)
+{
+    if (state.contains("zScaleIndex"))
+        m_d->m_zScaleCombo->setCurrentIndex(state["zScaleIndex"].toInt());
+    if (state.contains("zoomRect"))
+    {
+        auto r = rectFromJson(state["zoomRect"].toArray());
+        if (r.isValid() && !r.isEmpty())
+            m_d->m_zoomer->zoom(r);
+    }
+}
+
 QwtLinearColorMap *Histo2DWidget::getColorMap() const
 {
     if (zAxisIsLin())

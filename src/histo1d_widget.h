@@ -86,6 +86,9 @@ class LIBMVME_EXPORT Histo1DWidget: public histo_ui::IPlotWidget
 
         s32 currentHistoIndex() const;
 
+        QJsonObject getViewState() const override;
+        void setViewState(const QJsonObject &state) override;
+
     public slots:
         void replot() override;
         void zoom(const QRectF &zoomRect);

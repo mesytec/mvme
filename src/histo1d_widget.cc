@@ -1932,6 +1932,35 @@ s32 Histo1DWidget::currentHistoIndex() const
     return m_d->m_histoIndex;
 }
 
+QJsonObject Histo1DWidget::getViewState() const
+{
+    QJsonObject s;
+    s["yScaleIndex"] = m_d->m_yScaleCombo->currentIndex();
+    s["histoIndex"]  = m_d->m_histoIndex;
+    s["zoomRect"]    = rectToJson(m_d->m_zoomer->zoomRect());
+    s["maxVisBins"]  = static_cast<qint64>(m_d->maxVisibleBins_);
+    return s;
+}
+
+void Histo1DWidget::setViewState(const QJsonObject &state)
+{
+    if (state.contains("yScaleIndex"))
+        m_d->m_yScaleCombo->setCurrentIndex(state["yScaleIndex"].toInt());
+    if (state.contains("histoIndex"))
+        selectHistogram(state["histoIndex"].toInt());
+    if (state.contains("maxVisBins"))
+    {
+        m_d->maxVisibleBins_ = static_cast<u32>(state["maxVisBins"].toInt());
+        select_resolution_in_combo(m_d->combo_maxRes_, m_d->maxVisibleBins_);
+    }
+    if (state.contains("zoomRect"))
+    {
+        auto r = rectFromJson(state["zoomRect"].toArray());
+        if (r.isValid() && !r.isEmpty())
+            m_d->m_zoomer->zoom(r);
+    }
+}
+
 void Histo1DWidget::setCalibration(const std::shared_ptr<analysis::CalibrationMinMax> &calib)
 {
     m_d->m_calib = calib;

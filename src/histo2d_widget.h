@@ -81,6 +81,9 @@ class LIBMVME_EXPORT Histo2DWidget: public histo_ui::IPlotWidget
         QToolBar *getToolBar() override;
         QStatusBar *getStatusBar() override;
 
+        QJsonObject getViewState() const override;
+        void setViewState(const QJsonObject &state) override;
+
     public slots:
         void replot() override;
 
