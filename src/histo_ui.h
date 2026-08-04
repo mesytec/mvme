@@ -17,6 +17,7 @@
 #include "histo1d.h"
 #include "histo2d.h"
 #include "libmvme_export.h"
+#include "qt_util.h"
 
 class QToolBar;
 class QStatusBar;
@@ -28,7 +29,7 @@ namespace histo_ui
 QRectF canvas_to_scale(const QwtPlot *plot, const QRect &rect);
 QPointF canvas_to_scale(const QwtPlot *plot, const QPoint &pos);
 
-class LIBMVME_EXPORT IPlotWidget: public QWidget
+class LIBMVME_EXPORT IPlotWidget: public QWidget, public IWidgetViewState
 {
     Q_OBJECT
     public:
@@ -40,6 +41,9 @@ class LIBMVME_EXPORT IPlotWidget: public QWidget
 
         virtual QToolBar *getToolBar() = 0;
         virtual QStatusBar *getStatusBar() = 0;
+
+        QJsonObject getViewState() const override { return {}; }
+        void setViewState(const QJsonObject &) override {}
 
     public slots:
         virtual void replot() = 0;
