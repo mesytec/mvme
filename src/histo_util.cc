@@ -224,16 +224,16 @@ std::shared_ptr<Histo1D> make_projection(Histo2D *histo, Qt::Axis axis,
             << (projEndBin - projStartBin) << "bins";
 
 
-    // Create a new dest binning with the correct number of bins considering the given resolution reduction.
-    auto destBinning = AxisBinning(projBinning.getBins(projRrf), projBinning.getMin(), projBinning.getMax());
+    // Adjust start and end to the low edge of the corresponding bin.
+    projStart = projBinning.getBinLowEdge(projStartBin, projRrf);
+    projEnd   = projBinning.getBinLowEdge(projEndBin, projRrf);
+
+    // Create dest binning covering only the zoomed region.
+    auto destBinning = AxisBinning(nProjBins, projStart, projEnd);
     qDebug() << "destBinning:"
              << "min" << destBinning.getMin()
              << "max" << destBinning.getMax()
              << "bins" << destBinning.getBins();
-
-    // adjust start and end to low edge of corresponding bin
-    projStart = projBinning.getBinLowEdge(projStartBin, projRrf);
-    projEnd   = projBinning.getBinLowEdge(projEndBin, projRrf);
 
     auto result = std::make_shared<Histo1D>(destBinning);
     result->setAxisInfo(Qt::XAxis, histo->getAxisInfo(axis));
@@ -241,7 +241,7 @@ std::shared_ptr<Histo1D> make_projection(Histo2D *histo, Qt::Axis axis,
                           + (axis == Qt::XAxis ? QSL(" X") : QSL(" Y"))
                           + QSL(" Projection"));
 
-    u32 destBin = projStartBin;
+    u32 destBin = 0;
     ResolutionReductionFactors samplingRrf;
     if (axis == Qt::XAxis)
     {
