@@ -6,6 +6,7 @@ namespace mesytec::mvme
 WidgetRegistry::WidgetRegistry(QObject *parent)
     : QObject(parent)
     , geoSaver_(new WidgetGeometrySaver(this))
+    , viewStateSaver_(new WidgetViewStateSaver(this))
 {
 }
 

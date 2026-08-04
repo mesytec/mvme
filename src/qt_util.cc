@@ -32,6 +32,7 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QTextEdit>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <quazipfile.h>
@@ -134,8 +135,12 @@ void WidgetViewStateSaver::restoreState(QWidget *widget, const QString &key)
     if (!vs)
         return;
     auto doc = QJsonDocument::fromJson(m_settings.value(key).toByteArray());
-    if (!doc.isNull())
-        vs->setViewState(doc.object());
+    if (doc.isNull())
+        return;
+    auto state = doc.object();
+    // Defer until after the widget is shown and laid out so the canvas has its
+    // actual size when the zoom is applied (scroll bar geometry depends on it).
+    QTimer::singleShot(0, widget, [vs, state] { vs->setViewState(state); });
 }
 
 void WidgetViewStateSaver::addAndRestore(QWidget *widget, const QString &key)
