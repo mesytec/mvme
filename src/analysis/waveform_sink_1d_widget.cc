@@ -641,6 +641,7 @@ void WaveformSink1DWidget::replot()
     params.showSampleSymbols = d->showSampleSymbols_;
     params.showInterpolatedSymbols = d->showInterpolatedSymbols_;
     params.dtSample = xAxisShowsSamples ? 1.0 : d->spin_dtSample_->value();
+    params.phaseCorrection = static_cast<waveforms::PhaseCorrectionMode>(d->combo_phaseCorrection_->currentData().toInt());
 
     if (gotNewData)
         d->updateDisplayTraceData(params, d->analysisTraceSnapshot_);
