@@ -4,6 +4,32 @@
 Changelog
 ##################################################
 
+Version 1.21.0
+--------------------------------------------------
+
+* analysis:
+
+  - fix upper bound of the multiplicity operator
+
+  - add 'sum' row to the histogram list stats
+
+  - multiple fixes for both 2d and 1d list projections
+
+  - limit projections to zoomed in area of the source histogram
+
+  - remember zoom state and axis scaling when closing histograms. restore when opening
+
+  - fix titles and axis labels when exporting plots to pdf or image
+
+  - plotgrid: if there are pending changes ask if the view should be saved before closing
+
+* analysis waveforms:
+
+  - change the color table to have more contrast.
+
+  - fix the phase correction setting not being applied to the ui
+
+
 Version 1.20.0
 --------------------------------------------------
 
@@ -24,8 +50,6 @@ Version 1.20.0
 
 * event_builder: Suppress completely empty output events. Fixes weird looking
   counts in the analysis window.
-
-* analysis waveforms: change the color table to have more contrast.
 
 * internal: The non-gui MVLC Trigger/IO abstractions now live in the
   mesytec-mvlc driver.
