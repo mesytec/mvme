@@ -7,6 +7,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QCloseEvent>
 #include <QComboBox>
 #include <QDebug>
 #include <QDialogButtonBox>
@@ -16,6 +17,7 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPushButton>
@@ -122,6 +124,25 @@ struct MultiPlotWidget::Private
     QAction *actionGauss_ = {};
     QAction *actionSaveView_ = {};
     QTimer replotTimer_;
+    bool isDirty_ = false;
+
+    void setDirty(bool dirty)
+    {
+        if (isDirty_ == dirty)
+            return;
+        isDirty_ = dirty;
+        updateWindowTitle();
+    }
+
+    void updateWindowTitle()
+    {
+        QString title;
+        if (analysisGridView_)
+            title = "PlotGrid " + analysisGridView_->objectName();
+        if (isDirty_)
+            title.append(" *");
+        q->setWindowTitle(title);
+    }
 
     void addEntry(std::shared_ptr<PlotEntry> &&e)
     {
@@ -473,7 +494,6 @@ struct MultiPlotWidget::Private
             analysisGridView_ = std::make_shared<PlotGridView>();
             analysisGridView_->setObjectName(le_name->text());
             analysisGridView_->setUserLevel(spin_userLevel->value());
-            q->setWindowTitle(analysisGridView_->objectName());
         }
 
         EntryConversionVisitor ecv;
@@ -498,10 +518,12 @@ struct MultiPlotWidget::Private
         else
             asp_->getAnalysis()->setModified();
 
-        connect(analysisGridView_.get(), &QObject::objectNameChanged, q, [this] (const QString &newName)
+        setDirty(false);
+        connect(analysisGridView_.get(), &QObject::objectNameChanged, q, [this]
         {
-            q->setWindowTitle("PlotGrid " + newName);
+            updateWindowTitle();
         });
+        updateWindowTitle();
     }
 
     void loadView(const std::shared_ptr<PlotGridView> &view)
@@ -525,24 +547,27 @@ struct MultiPlotWidget::Private
         if (auto maxRes = view->getMaxVisibleResolution(); maxRes > 0)
             maxVisibleBins_ = maxRes;
 
-        if (auto idx = combo_axisScaleType_->findData(view->getAxisScaleType()); idx >= 0)
-            combo_axisScaleType_->setCurrentIndex(idx);
-
-        maxColumns_ = std::max(1, view->getMaxColumns());
-        spin_columns_->setValue(maxColumns_);
-        cb_combinedZoom_->setChecked(view->getCombinedZoom());
-        actionGauss_->setChecked(view->isGaussEnabled());
+        {
+            QSignalBlocker b1(combo_axisScaleType_), b2(spin_columns_),
+                           b3(cb_combinedZoom_), b4(actionGauss_);
+            if (auto idx = combo_axisScaleType_->findData(view->getAxisScaleType()); idx >= 0)
+                combo_axisScaleType_->setCurrentIndex(idx);
+            maxColumns_ = std::max(1, view->getMaxColumns());
+            spin_columns_->setValue(maxColumns_);
+            cb_combinedZoom_->setChecked(view->getCombinedZoom());
+            actionGauss_->setChecked(view->isGaussEnabled());
+        }
 
         if (analysisGridView_)
             disconnect(analysisGridView_.get(), &QObject::objectNameChanged, q, nullptr);
 
-        q->setWindowTitle("PlotGrid " + view->objectName());
         analysisGridView_ = view;
-
-        connect(analysisGridView_.get(), &QObject::objectNameChanged, q, [this] (const QString &newName)
+        connect(analysisGridView_.get(), &QObject::objectNameChanged, q, [this]
         {
-            q->setWindowTitle("PlotGrid " + newName);
+            updateWindowTitle();
         });
+        setDirty(false);
+        updateWindowTitle();
 
         relayout();
         refresh();
@@ -657,6 +682,7 @@ MultiPlotWidget::MultiPlotWidget(AnalysisServiceProvider *asp, QWidget *parent)
                 this, [this] (int idx)
                 {
                     d->setAxisScaling(static_cast<AxisScaleType>(idx));
+                    d->setDirty(true);
                 });
         d->combo_axisScaleType_ = combo;
     }
@@ -670,6 +696,8 @@ MultiPlotWidget::MultiPlotWidget(AnalysisServiceProvider *asp, QWidget *parent)
         set_widget_font_pointsize(d->cb_combinedZoom_, 7);
         set_widget_font_pointsize(boxStruct.label, 7);
         tb->addWidget(boxStruct.container.release());
+        connect(d->cb_combinedZoom_, &QCheckBox::toggled,
+                this, [this] { d->setDirty(true); });
     }
 
     auto actionGauss = tb->addAction(QIcon(":/generic_chart_with_pencil.png"), QSL("Gauss"));
@@ -696,6 +724,7 @@ MultiPlotWidget::MultiPlotWidget(AnalysisServiceProvider *asp, QWidget *parent)
                 {
                     d->maxVisibleBins_ = d->combo_maxRes_->currentData().toUInt();
                     d->refresh();
+                    d->setDirty(true);
                 });
 
         d->combo_maxRes_->setCurrentIndex(6);
@@ -743,16 +772,17 @@ MultiPlotWidget::MultiPlotWidget(AnalysisServiceProvider *asp, QWidget *parent)
             this, [this] { d->saveView(); });
 
     connect(actionEnlargeTiles, &QAction::triggered,
-            this, [this] { d->enlargeTiles(); });
+            this, [this] { d->enlargeTiles(); d->setDirty(true); });
 
     connect(actionShrinkTiles, &QAction::triggered,
-            this, [this] { d->shrinkTiles(); });
+            this, [this] { d->shrinkTiles(); d->setDirty(true); });
 
     connect(spinColumns, qOverload<int>(&QSpinBox::valueChanged),
             this, [this] (int value)
             {
                 d->maxColumns_ = value;
                 d->relayout();
+                d->setDirty(true);
             });
 
     connect(actionGauss, &QAction::toggled,
@@ -764,6 +794,7 @@ MultiPlotWidget::MultiPlotWidget(AnalysisServiceProvider *asp, QWidget *parent)
                         h1dEntry->gaussCurve->setVisible(checked);
                 }
                 d->refresh();
+                d->setDirty(true);
             });
 
     connect(plotInteractions, &QActionGroup::triggered,
@@ -793,10 +824,33 @@ MultiPlotWidget::~MultiPlotWidget()
     qDebug() << __PRETTY_FUNCTION__ << "<<< inRefresh=" << d->inRefresh_;
 }
 
+void MultiPlotWidget::closeEvent(QCloseEvent *event)
+{
+    if (d->isDirty_ && d->analysisGridView_)
+    {
+        auto result = QMessageBox::question(
+            this,
+            QSL("Unsaved Changes"),
+            QSL("The view %1 has unsaved changes.\nSave before closing?").arg(d->analysisGridView_->objectName()),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save);
+
+        if (result == QMessageBox::Save)
+            d->saveView();
+        else if (result == QMessageBox::Cancel)
+        {
+            event->ignore();
+            return;
+        }
+    }
+    QWidget::closeEvent(event);
+}
+
 void MultiPlotWidget::addSink(const analysis::SinkPtr &sink)
 {
     d->addSink(sink);
     d->refresh();
+    d->setDirty(true);
 }
 
 void MultiPlotWidget::addSinkElement(
@@ -805,11 +859,13 @@ void MultiPlotWidget::addSinkElement(
 {
     d->addSinkElement(sink, elementIndex);
     d->refresh();
+    d->setDirty(true);
 }
 void MultiPlotWidget::addHisto1D(const Histo1DPtr &histo)
 {
     d->addHisto1D(histo);
     d->refresh();
+    d->setDirty(true);
 }
 
 void MultiPlotWidget::setMaxVisibleResolution(size_t maxres)
@@ -917,6 +973,7 @@ void MultiPlotWidget::dropEvent(QDropEvent *ev)
             }
         }
         d->refresh();
+        d->setDirty(true);
         if (d->analysisGridView_)
             d->saveView();
     }
@@ -931,6 +988,7 @@ void MultiPlotWidget::dropEvent(QDropEvent *ev)
         if (sourceIndex >= 0 && destIndex >= 0)
             d->moveEntry(sourceIndex, destIndex);
 
+        d->setDirty(true);
         if (d->analysisGridView_)
             d->saveView();
     }
