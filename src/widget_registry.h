@@ -71,6 +71,7 @@ class LIBMVME_EXPORT WidgetRegistry: public QObject
 
     private:
         WidgetGeometrySaver *geoSaver_;
+        WidgetViewStateSaver *viewStateSaver_;
         QMap<QObject *, QList<QWidget *>> objectWidgets_;
         QMap<QString, QList<QWidget  *>> nonObjectWidgets_;
 };

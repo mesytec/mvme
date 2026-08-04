@@ -18,6 +18,7 @@ void WidgetRegistry::addObjectWidget(QWidget *widget, QObject *object, const QSt
     objectWidgets_[object].push_back(widget);
     widget->setAttribute(Qt::WA_DeleteOnClose);
     geoSaver_->addAndRestore(widget, QSL("WindowGeometries/") + geoSaverKey);
+    viewStateSaver_->addAndRestore(widget, QSL("WidgetViewStates/") + geoSaverKey);
     add_widget_close_action(widget);
     widget->show();
 }
@@ -79,6 +80,7 @@ void WidgetRegistry::addWidget(QWidget *widget, const QString &stateKey)
     nonObjectWidgets_[stateKey].push_back(widget);
     widget->setAttribute(Qt::WA_DeleteOnClose);
     geoSaver_->addAndRestore(widget, QSL("WindowGeometries/") + stateKey);
+    viewStateSaver_->addAndRestore(widget, QSL("WidgetViewStates/") + stateKey);
     add_widget_close_action(widget);
     widget->show();
 }
