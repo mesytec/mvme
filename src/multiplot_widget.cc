@@ -566,11 +566,11 @@ struct MultiPlotWidget::Private
         {
             updateWindowTitle();
         });
-        setDirty(false);
         updateWindowTitle();
 
         relayout();
         refresh();
+        setDirty(false);
     }
 
     void contextMenuRequested(const QPoint &pos)
