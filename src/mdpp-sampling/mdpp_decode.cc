@@ -334,6 +334,7 @@ DecodedMdppSampleEvent decode_mdpp_samples_impl(const u32 *data, const size_t si
     {
         logger_fun("trace", fmt::format("decode_mdpp_samples: Finished decoding a channel trace: channel={}, #samples={}, samples={}",
             currentTrace.channel, currentTrace.samples.size(), fmt::join(currentTrace.samples, ", ")));
+        totalSamples += currentTrace.samples.size();
         ret.traces.push_back(currentTrace);
     }
 
